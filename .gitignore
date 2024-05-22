@@ -1,1 +1,6 @@
 test/
+/.idea/.gitignore
+/.idea/vcs.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/webaudio-pianoroll.iml
