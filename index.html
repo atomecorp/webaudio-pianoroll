@@ -7,9 +7,14 @@
     <script src="webaudio-pianoroll.js"></script>
 
     <script>
+
         timebase = 16;
         actx = new AudioContext();
         var pianoRoll;
+
+        function changeEditMode(mode) {
+            document.getElementById('pianoroll').editmode = mode;
+        }
 
         function Callback(ev) {
             console.log(`Note: ${ev.n}, Start time: ${ev.t}, Duration: ${ev.g - ev.t}`);
@@ -68,13 +73,20 @@
     </script>
 </head>
 <body>
-<webaudio-pianoroll id="pianoroll" width="800" height="320"></webaudio-pianoroll>
+<webaudio-pianoroll id="pianoroll" width="800" height="320" editmode="dragmono" xrange="64" markend="64" collt="#33f" coldk="#338" ></webaudio-pianoroll>
+<!--<webaudio-pianoroll width="800" height="400" xrange="64" markend="64" collt="#33f" coldk="#338" editmode="dragmono"></webaudio-pianoroll>-->
+
 <webaudio-slider oninput="Layout(this)" id="xrange" direction="horz" width="120" height="24" min="1" max="10" value="1"></webaudio-slider>
 <webaudio-slider oninput="Layout(this)" id="xoffset" direction="horz" width="200" height="24" min="0" max="20" step="0.01" value="0"></webaudio-slider>
 <webaudio-slider oninput="Layout(this)" id="yrange" direction="vert" width="24" height="120" min="3" max="32" value="16"></webaudio-slider>
 <webaudio-slider oninput="Layout(this)" id="yoffset" direction="vert" width="24" height="200" min="30" max="120" value="60"></webaudio-slider>
 <button onclick="Play()">Play</button>
 <button onclick="Stop()">Stop</button>
+<button onclick="changeEditMode('dragmono')">Drag Mono</button>
+<button onclick="changeEditMode('dragpoly')">Drag Poly</button>
+<button onclick="changeEditMode('drawmono')">Draw Mono</button>
+<button onclick="changeEditMode('drawpoly')">Draw Poly</button>
+<button onclick="changeEditMode('off')">Off</button>
 <button onclick="document.getElementById('mml').value=(document.getElementById('pianoroll').getMMLString())">getMMLString</button>
 <button onclick="document.getElementById('pianoroll').setMMLString(document.getElementById('mml').value)">setMMLString</button>
 <br/>
