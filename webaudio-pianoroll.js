@@ -641,15 +641,18 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                 switch (this.dragging.m) {
                     case "E":
-                        /// jeezs add on
-                        console.log('changing note length')
-                        /// end add on
+
                         if (this.dragging.ev) {
+
                             const dt = ((Math.max(0, ht.t) / this.snap + 0.9) | 0) * this.snap - this.dragging.t - this.dragging.g;
                             const list = this.dragging.ev;
                             for (let i = list.length - 1; i >= 0; --i) {
                                 const ev = list[i].ev;
+
                                 ev.g = list[i].g + dt;
+                                /// jeezs add on
+                                console.log('changing note end : '+ev.g)
+                                /// end add on
                                 if (ev.g <= 0)
                                     ev.g = 1;
                                 if (this.editmove == "dragmono")
@@ -660,14 +663,14 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                         this.redraw();
                         break;
                     case "B":
-                        /// jeezs add on
-                        console.log('changing note start')
-                        /// end add on
                         if (this.dragging.ev) {
                             const dt = ((Math.max(0, ht.t) / this.snap + 0.9) | 0) * this.snap - this.dragging.t;
                             const list = this.dragging.ev;
                             for (let i = list.length - 1; i >= 0; --i) {
                                 const ev = list[i].ev;
+                                /// jeezs add on
+                                console.log('changing note start : '+ev.g)
+                                /// end add on
                                 ev.t = list[i].t + dt;
                                 ev.g = list[i].g - dt;
                                 if (ev.g <= 0)
@@ -695,10 +698,12 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                         this.redraw();
                         break;
                     case "N":
-                        /// jeezs add on
-                        console.log('changing note position')
-                        /// end add on
+
                         ev = this.sequence[this.dragging.i];
+                        /// jeezs add on
+                        console.log('changing note position : '+':'+ev.g +':'+ev.t+':'+ev.n+':'+ev.f)
+
+                        /// end add on
                         this.moveSelectedNote((ht.t - this.dragging.t) | 0, (ht.n | 0) - this.dragging.n);
                         this.redraw();
                         break;
