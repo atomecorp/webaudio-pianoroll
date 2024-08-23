@@ -1,6 +1,9 @@
 customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement {
     constructor(){
         super();
+        this.noteIdCounter = 0;
+        this.editing= true
+        this.refuse= false
     }
     defineprop(){
         const plist=this.module.properties;
@@ -47,7 +50,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 octadj:             {type:Number, value:-1},
                 cursor:             {type:Number, value:0, observer:'redrawMarker'},
                 markstart:          {type:Number, value:0, observer:'redrawMarker'},
-                markend:            {type:Number, value:16, observer:'redrawMarker'},
+                markend:            {type:Number, value:4, observer:'redrawMarker'},
                 defvelo:            {type:Number, value:100},
                 collt:              {type:String, value:"#ccc"},
                 coldk:              {type:String, value:"#aaa"},
@@ -109,8 +112,8 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 #wac-menu {
     display:none;
     position:absolute;
-    top:0px;
-    left:0px;
+    top:0;
+    left:0;
     background:#eef;
     color:#000;
     padding:2px 10px;
@@ -120,14 +123,14 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 }
 .marker{
     position: absolute;
-    left:0px;
-    top:0px;
+    left:0;
+    top:0;
     cursor:ew-resize;
 }
 #wac-kb{
     position:absolute;
-    left:0px;
-    top:0px;
+    left:0;
+    top:0;
     width:100px;
     height:100%;
     background: repeat-y;
@@ -135,12 +138,12 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
     background-position:left bottom;
 }
 </style>
-<div class="wac-body" id="wac-body" touch-action="none">
-<canvas id="wac-pianoroll" touch-action="none" tabindex="0"></canvas>
+<div class="wac-body" id="wac-body" >
+<canvas id="wac-pianoroll"  tabindex="0"></canvas>
 <div id="wac-kb"></div>
-<img id="wac-markstart" class="marker" src="${this.markstartsrc}"/>
-<img id="wac-markend" class="marker" src="${this.markendsrc}"/>
-<img id="wac-cursor" class="marker" src="${this.cursorsrc}"/>
+<img id="wac-markstart" class="marker" src="${this.markstartsrc}" alt=""/>
+<img id="wac-markend" class="marker" src="${this.markendsrc}" alt=""/>
+<img id="wac-cursor" class="marker" src="${this.cursorsrc}" alt=""/>
 <div id="wac-menu">Delete</div>
 </div>`;
 
@@ -434,7 +437,8 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
         this.addNote=function(t,n,g,v,f){
             if(t>=0 && n>=0 && n<128){
-                const ev={t:t,c:0x90,n:n,g:g,v:v,f:f};
+                const id = this.noteIdCounter++;
+                const ev = { id: id, t: t, n: n, g: g, v: v, f: f };
                 this.sequence.push(ev);
                 this.sortSequence();
                 this.redraw();
@@ -483,14 +487,18 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             }
         };
         this.delSelectedNote=function(){
+            // thie.editing = false
+            console.log('deleting note')
             const l=this.sequence.length;
             for(let i=l-1;i>=0;--i){
                 const ev=this.sequence[i];
                 if(ev.f)
                     this.sequence.splice(i,1);
             }
+            this.refuse= true
         };
         this.moveSelectedNote=function(dt,dn){
+            console.log('moving note')
             const l=this.sequence.length;
             for(let i=0;i<l;++i){
                 const ev=this.sequence[i];
@@ -506,6 +514,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             }
         };
         this.clearSel=function(){
+            console.log('deselecting note');
             const l=this.sequence.length;
             for(let i=0;i<l;++i){
                 this.sequence[i].f=0;
@@ -541,18 +550,49 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             }
             else if(ht.m=="E"){
                 const ev = this.sequence[ht.i];
+                console.log('1  note end changed:'); // Ajoutez ce log
+
                 this.dragging={o:"D", m:"E", i:ht.i, t:ev.t, g:ev.g, ev:this.selectedNotes()};
             }
             else if(ht.m=="B"){
                 const ev = this.sequence[ht.i];
+                console.log('2 note start changed:'); // Ajoutez ce log
+
                 this.dragging={o:"D", m:"B", i:ht.i, t:ev.t, g:ev.g, ev:this.selectedNotes()};
             }
             else if(ht.m=="s"&&ht.t>=0){
                 this.clearSel();
-                var t=((ht.t/this.snap)|0)*this.snap;
-                this.sequence.push({t:t, n:ht.n|0, g:1, f:1});
-                this.dragging={o:"D",m:"E",i:this.sequence.length-1, t:t, g:1, ev:[{t:t,g:1,ev:this.sequence[this.sequence.length-1]}]};
-                this.redraw();
+
+                if(this.editing == true && !this.refuse){
+                    var t=((ht.t/this.snap)|0)*this.snap;
+                    const id = this.noteIdCounter++;
+                    console.log('3 note. created : '+id); // Ajoutez ce log
+                    this.sequence.push({id: id,t:t, n:ht.n|0, g:1, f:1});
+                    this.dragging={o:"D",m:"E",i:this.sequence.length-1, t:t, g:1, ev:[{t:t,g:1,ev:this.sequence[this.sequence.length-1]}]};
+                    this.refuse=false
+                    console.log('===> accept/refuse'+this.refuse)
+                }
+                else{
+                    switch(this.downht.m){
+                        case "N":
+                        case "B":
+                        case "E":
+                            console.log('open menu');
+                            this.popMenu(this.downpos);
+                            this.dragging={o:"m"};
+                            break;
+                        default:
+                            if(this.editmode=="dragmono"||this.editmode=="dragpoly")
+                                this.dragging={o:"A",p:this.downpos,p2:this.downpos,t1:this.downht.t,n1:this.downht.n};
+                            this.refuse=false
+                            console.log('===> accept/refuse'+this.refuse)
+                            break;
+                    }
+                    this.canvas.focus();
+                    return false;
+                }
+
+            this.redraw();
             }
         };
         this.editDragMove=function(pos){
@@ -567,6 +607,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                         for(let i = list.length - 1; i >= 0; --i){
                             const ev = list[i].ev;
                             ev.g = list[i].g + dt;
+
                             if(ev.g <= 0)
                                 ev.g = 1;
                             if(this.editmove=="dragmono")
@@ -584,6 +625,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                             const ev = list[i].ev;
                             ev.t = list[i].t + dt;
                             ev.g = list[i].g - dt;
+
                             if(ev.g <= 0)
                                 ev.g = 1;
                             if(this.editmove=="dragmono")
@@ -611,6 +653,8 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                     break;
                 case "N":
                     ev=this.sequence[this.dragging.i];
+                    console.log('4 note. dragged : '); // Ajoutez ce log
+
                     this.moveSelectedNote((ht.t-this.dragging.t)|0, (ht.n|0)-this.dragging.n);
                     this.redraw();
                     break;
@@ -719,13 +763,14 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
         this.keydown=function(e){
             switch(e.keyCode){
-            case 46://delNote
+            case 8://delNote
                 this.delSelectedNote();
                 this.redraw();
                 break;
             }
         };
         this.popMenu=function(pos){
+            console.log('pop menu call from shortcut')
             const s=this.menu.style;
             s.display="block";
             s.top=(pos.y+8)+"px";
@@ -764,12 +809,30 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             window.addEventListener("touchend",this.bindcancel);
             window.addEventListener("mouseup",this.bindcancel);
             window.addEventListener("contextmenu",this.bindcontextmenu);
+            // switch(this.downht.m){
+            //     case "N":
+            //     case "B":
+            //     case "E":
+            //         console.log('open menu');
+            //         this.popMenu(this.downpos);
+            //         this.dragging={o:"m"};
+            //         break;
+            //     default:
+            //         if(this.editmode=="dragmono"||this.editmode=="dragpoly")
+            //             this.dragging={o:"A",p:this.downpos,p2:this.downpos,t1:this.downht.t,n1:this.downht.n};
+            //         break;
+            // }
+            // ev.preventDefault();
+            // ev.stopPropagation();
+            // this.canvas.focus();
+            // return false;
 
             if(e.button==2||e.ctrlKey){
                 switch(this.downht.m){
                 case "N":
                 case "B":
                 case "E":
+                    console.log('open menu');
                     this.popMenu(this.downpos);
                     this.dragging={o:"m"};
                     break;
@@ -866,18 +929,21 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 this.redraw();
                 break;
             case "E":
+                console.log('marker end')
                 var p=Math.max(1,(this.dragging.m+(pos.x-this.dragging.x)/this.stepw+.5)|0);
                 if(this.markstart>=p)
                     this.markstart=p-1;
                 this.markend=p;
                 break;
             case "S":
+                console.log('marker start')
                 var p=Math.max(0,(this.dragging.m+(pos.x-this.dragging.x)/this.stepw+.5)|0);
                 if(this.markend<=p)
                     this.markend=p+1;
                 this.markstart=p;
                 break;
             case "P":
+             console.log('playhead')
                 this.cursor=Math.max(0,(this.dragging.m+(pos.x-this.dragging.x)/this.stepw+.5)|0);
                 break;
             }
@@ -1074,27 +1140,27 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             this.kbimg.style.backgroundSize="100% "+(this.steph*12)+"px";
             this.kbimg.style.backgroundPosition="0px "+(this.sheight+this.steph*this.yoffset)+"px";
         };
-        this.redrawKeyboard=function(){
-            if(this.yruler){
-                this.ctx.textAlign="right";
-                this.ctx.font=(this.steph/2)+"px 'sans-serif'";
-                this.ctx.fillStyle=this.colortab.kbwh;
-                this.ctx.fillRect(1,this.xruler,this.yruler,this.sheight);
-                this.ctx.fillStyle=this.colortab.kbbk;
-                for(y=0;y<128;++y){
-                    const ys=this.height-this.steph*(y-this.yoffset);
-                    const ysemi=y%12;
-                    const fsemi=this.semiflag[ysemi];
-                    if(fsemi&1){
-                        this.ctx.fillRect(0,ys,this.yruler/2,-this.steph);
-                        this.ctx.fillRect(0,(ys-this.steph/2)|0,this.yruler,-1);
+        this.redrawKeyboard = function () {
+            if (this.yruler) {
+                this.ctx.textAlign = "right";
+                this.ctx.font = (this.steph / 2) + "px 'sans-serif'";
+                this.ctx.fillStyle = this.colortab.kbwh;
+                this.ctx.fillRect(1, this.xruler, this.yruler, this.sheight);
+                this.ctx.fillStyle = this.colortab.kbbk;
+                for (let y = 0; y < 128; ++y) {  // Déclaration de 'y' avec 'let'
+                    const ys = this.height - this.steph * (y - this.yoffset);
+                    const ysemi = y % 12;
+                    const fsemi = this.semiflag[ysemi];
+                    if (fsemi & 1) {
+                        this.ctx.fillRect(0, ys, this.yruler / 2, -this.steph);
+                        this.ctx.fillRect(0, (ys - this.steph / 2) | 0, this.yruler, -1);
                     }
-                    if(fsemi&2)
-                        this.ctx.fillRect(0,ys|0,this.yruler,-1);
-                    if(fsemi&4)
-                        this.ctx.fillText("C"+(((y/12)|0)+this.octadj),this.yruler-4,ys-4);
+                    if (fsemi & 2)
+                        this.ctx.fillRect(0, ys | 0, this.yruler, -1);
+                    if (fsemi & 4)
+                        this.ctx.fillText("C" + (((y / 12) | 0) + this.octadj), this.yruler - 4, ys - 4);
                 }
-                this.ctx.fillRect(this.yruler,this.xruler,1,this.sheight);
+                this.ctx.fillRect(this.yruler, this.xruler, 1, this.sheight);
             }
         };
         this.redrawAreaSel=function(){
@@ -1114,10 +1180,16 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             const l=this.sequence.length;
             for(let s=0; s<l; ++s){
                 const ev=this.sequence[s];
-                if(ev.f)
+                if(ev.f){
+                    console.log('add selected note color')
                     this.ctx.fillStyle=this.colnotesel;
-                else
+                }
+
+                else{
+                    console.log('add note color')
                     this.ctx.fillStyle=this.colnote;
+                }
+
                 w=ev.g*this.stepw;
                 x=(ev.t-this.xoffset)*this.stepw+this.yruler+this.kbwidth;
                 x2=(x+w)|0; x|=0;
@@ -1160,3 +1232,95 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
     }
     disconnectedCallback(){}
 });
+//// add on methods
+
+
+function changeEditMode(mode) {
+    document.getElementById('proll').editmode = mode;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    let pianoRoll = document.querySelector('webaudio-pianoroll');
+// Changer le tempo à 33 BPM
+    pianoRoll.tempo =33;
+    pianoRoll.updateTimer();
+    console.log('Tempo:', pianoRoll.tempo);
+});
+
+function AddNote() {
+    actx.resume();
+    let sequence = document.getElementById("proll");
+    sequence.addNote(
+        0, // Track
+        66, // Tick
+        2, // Duration
+        39, // Note
+        48  // Velocity
+    );
+}
+
+function setMarkStart() {
+    let sequence = document.getElementById("proll");
+    sequence.markstart= (3)
+}
+
+function setMarkEnd() {
+    let sequence = document.getElementById("proll");
+    sequence.markend= (7)
+}
+
+function playHead() {
+    let sequence = document.getElementById("proll");
+    sequence.locate(3);
+}
+
+function menu() {
+    console.log('add a menu here!!!')
+    let sequence = document.getElementById("proll");
+    // sequence.editing = false
+    sequence.delSelectedNote();
+
+    // sequence.editing = true
+}
+
+function editing() {
+    let sequence = document.getElementById("proll");
+ if   ( sequence.editing){
+     sequence.editing = false
+     console.log('no editing')
+
+ }else
+ {
+     sequence.editing = true
+     console.log('editing active')
+
+ }
+
+
+}
+
+function notes() {
+    let sequence = document.getElementById("proll");
+    let notes = sequence.sequence;
+    console.log('note liste : ' +notes)
+}
+
+function selectAll() {
+    let pianoroll = document.getElementById("proll");
+    pianoroll.sequence.forEach(note => {
+        note.f = 1; // Marque la note comme sélectionnée
+    });
+    pianoroll.redraw();
+}
+
+function deSelectAll() {
+    let pianoroll = document.getElementById("proll");
+    pianoroll.sequence.forEach(note => {
+        note.f = 0; // Marque la note comme sélectionnée
+    });
+    pianoroll.redraw();
+}
+
+
+
+console.log('add undo, and cancel before deleting, select all')

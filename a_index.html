@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+    <script src="a_pianoroll.js"></script>
+    <script>
+        function init_audio() {
+            timebase = 16;
+            actx = new AudioContext();
+            osc = actx.createOscillator();
+            gain = actx.createGain();
+            gain.gain.value = 0;
+            osc.type = "sawtooth";
+            osc.start();
+            osc.connect(gain).connect(actx.destination);
+        }
+
+        function Callback(ev) {
+            console.log(ev.g)
+            osc.detune.setValueAtTime((ev.n - 69) * 100, ev.t);
+            gain.gain.setTargetAtTime(0.5, ev.t, 0.005);
+            gain.gain.setTargetAtTime(0, ev.g, 0.1);
+        }
+
+        function play() {
+            actx.resume();
+            document.getElementById("proll").play(actx, Callback);
+        }
+    </script>
+</head>
+<body>
+<webaudio-pianoroll id="proll" width="800" height="320"></webaudio-pianoroll>
+<button onclick="init_audio()">init</button>
+<button onclick="play()">Play</button>
+<button onclick="document.getElementById('proll').stop()">Stop</button>
+<button onclick="changeEditMode('dragmono')">Drag Mono</button>
+<button onclick="changeEditMode('dragpoly')">Drag Poly</button>
+<button onclick="AddNote()">Add Note</button>
+<button onclick="setMarkStart()">set start marker</button>
+<button onclick="setMarkEnd()">set end marker</button>
+<button onclick="playHead()">Move play head</button>
+<button onclick="menu()">open menu</button>
+<button onclick="editing()">editing</button>
+<button onclick="notes()">note liste</button>
+<button onclick="selectAll()">select all</button>
+<button onclick="deSelectAll()">de-select all</button>
+
+
+</body>
+</html>
