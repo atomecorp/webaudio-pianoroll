@@ -1251,11 +1251,11 @@ function AddNote() {
     actx.resume();
     let sequence = document.getElementById("proll");
     sequence.addNote(
-        0, // Track
-        66, // Tick
+        0, // Tick
+        66, // Note
         2, // Duration
-        39, // Note
-        48  // Velocity
+        39, //???
+        48  // ????
     );
 }
 
@@ -1288,23 +1288,69 @@ function editing() {
  if   ( sequence.editing){
      sequence.editing = false
      console.log('no editing')
-
  }else
  {
      sequence.editing = true
      console.log('editing active')
-
  }
-
 
 }
 
+
+function createExtendedNote(notes) {
+    if (notes.length === 0) {
+        return null;  // Si la liste des notes est vide, retourner null ou une autre valeur appropriée
+    }
+
+    // Filtrer les notes sélectionnées (f = 1)
+    let selectedNotes = notes.filter(note => note.f === 1);
+
+    if (selectedNotes.length === 0) {
+        return null;  // Si aucune note n'est sélectionnée, retourner null
+    }
+
+    // Trouver la note qui commence le plus tôt parmi les notes sélectionnées
+    let earliestStartNote = selectedNotes.reduce((earliest, note) => note.t < earliest.t ? note : earliest, selectedNotes[0]);
+
+    // Trouver la note qui se termine le plus tard parmi les notes sélectionnées
+    let latestEndNote = selectedNotes.reduce((latest, note) => (note.t + note.g) > (latest.t + latest.g) ? note : latest, selectedNotes[0]);
+
+    // Créer la nouvelle note
+    let newNote = {
+        id: Math.max(...notes.map(note => note.id)) + 1,  // Générer un nouvel ID basé sur les IDs existants
+        t: earliestStartNote.t,  // Timecode du début de la première note sélectionnée
+        n: earliestStartNote.n,  // Utiliser le même pitch que la première note sélectionnée
+        g: (latestEndNote.t + latestEndNote.g) - earliestStartNote.t,  // Calculer la durée totale
+        f: 1  // Par défaut, marquer la note comme sélectionnée
+    };
+
+    let sequence = document.getElementById("proll");
+
+    // Ajouter la nouvelle note à la séquence
+    sequence.addNote(
+        0,                   // Track par défaut
+        newNote.t,           // Timecode du début de la nouvelle note
+        newNote.g,           // Durée de la nouvelle note
+        newNote.n,           // Pitch de la nouvelle note
+        48                   // Vélocité par défaut (modifiable selon vos besoins)
+    );
+
+    return newNote;
+}
 function notes() {
     let sequence = document.getElementById("proll");
     let notes = sequence.sequence;
     console.log('note liste : ' +notes)
-}
+    console.log(notes)
 
+    console.log('---------')
+
+    console.log(createExtendedNote(notes))
+    let newNote=createExtendedNote(notes)
+    deleteSelectedNotes()
+    sequence.addNote(newNote.t, 60,newNote.g, 8, 48);
+
+}
 function selectAll() {
     let pianoroll = document.getElementById("proll");
     pianoroll.sequence.forEach(note => {
@@ -1321,6 +1367,30 @@ function deSelectAll() {
     pianoroll.redraw();
 }
 
+function deleteSelectedNotes() {
+    // Obtenir l'élément Pianoroll
+    let pianoroll = document.getElementById("proll");
 
+    // Accéder à la séquence des notes, qui est probablement une propriété de l'objet Pianoroll
+    let sequence = pianoroll.sequence;
+
+    // Vérifier si la séquence est bien un tableau
+    if (Array.isArray(sequence)) {
+        // Filtrer et conserver uniquement les notes non sélectionnées
+        pianoroll.sequence = sequence.filter(note => note.f !== 1);
+
+        // Redessiner pour refléter les changements
+        if (typeof pianoroll.redraw === 'function') {
+            pianoroll.redraw();
+        }
+
+        // Optionnel : Si vous avez une méthode layout pour ajuster la disposition, vous pouvez l'appeler aussi
+        if (typeof pianoroll.layout === 'function') {
+            pianoroll.layout();
+        }
+    } else {
+        console.error("La séquence des notes n'est pas un tableau.");
+    }
+}
 
 console.log('add undo, and cancel before deleting, select all')
