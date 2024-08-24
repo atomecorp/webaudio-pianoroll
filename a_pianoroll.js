@@ -185,66 +185,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         this.updateTimer = function () {
             this.tick2time = 4 * 60 / this.tempo / this.timebase;
         };
-        // this.play = function (actx, playcallback, tick) {
-        //     function Interval() {
-        //         const current = this.actx.currentTime;
-        //         while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
-        //             this.timestack.shift();
-        //         }
-        //         this.cursor = this.timestack[0][1] + (current - this.timestack[0][0]) / this.timestack[0][2];
-        //         this.redrawMarker();
-        //         while (current + this.preload >= this.time1) {
-        //             this.time0 = this.time1;
-        //             this.tick0 = this.tick1;
-        //             let e = this.sequence[this.index1];
-        //             if (!e || e.t >= this.markend) {
-        //                 this.timestack.push([this.time1, this.markstart, this.tick2time]);
-        //                 const p = this.findNextEv(this.markstart);
-        //                 this.time1 += p.dt * this.tick2time;
-        //                 this.index1 = p.i;
-        //             } else {
-        //                 this.tick1 = e.t;
-        //                 this.timestack.push([this.time1, e.t, this.tick2time]);
-        //                 let gmax = Math.min(e.t + e.g, this.markend) - e.t;
-        //                 if (this.editmode == "gridmono" || this.editmode == "gridpoly")
-        //                     gmax *= this.gridnoteratio;
-        //                 const cbev = {t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n};
-        //                 if (this.playcallback)
-        //                     this.playcallback(cbev);
-        //                 e = this.sequence[++this.index1];
-        //                 if (!e || e.t >= this.markend) {
-        //                     this.time1 += (this.markend - this.tick1) * this.tick2time;
-        //                     const p = this.findNextEv(this.markstart);
-        //                     this.timestack.push([this.time1, this.markstart, this.tick2time]);
-        //                     this.time1 += p.dt * this.tick2time;
-        //                     this.index1 = p.i;
-        //                 } else
-        //                     this.time1 += (e.t - this.tick1) * this.tick2time;
-        //             }
-        //         }
-        //     }
-        //
-        //     if (typeof (tick) != "undefined")
-        //         this.locate(tick);
-        //     if (this.timer != null)
-        //         return;
-        //     this.actx = actx;
-        //     this.playcallback = playcallback;
-        //     this.timestack = [];
-        //     this.time0 = this.time1 = this.actx.currentTime + 0.1;
-        //     this.tick0 = this.tick1 = this.cursor;
-        //     this.tick2time = 4 * 60 / this.tempo / this.timebase;
-        //     const p = this.findNextEv(this.cursor);
-        //     this.index1 = p.i;
-        //     this.timestack.push([0, this.cursor, 0]);
-        //     this.timestack.push([this.time0, this.cursor, this.tick2time]);
-        //     this.time1 += p.dt * this.tick2time;
-        //     if (p.i < 0)
-        //         this.timestack.push([this.time1, this.markstart, this.tick2time]);
-        //     else
-        //         this.timestack.push([this.time1, p.t1, this.tick2time]);
-        //     this.timer = setInterval(Interval.bind(this), 25);
-        // };
 
         this.play = function (playcallback, tick) {
             if (typeof(tick) != "undefined") {
@@ -603,7 +543,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                 if (!this.noteTexture || !this.noteTexture.complete) {
                     this.noteTexture = new Image();
-                    this.noteTexture.src = 'waveform.png';
+                    this.noteTexture.src = 'src/medias/images/waveform.png';
                     this.noteTexture.onload = () => {
                         this.applyTexture(ev);
                     };
@@ -748,7 +688,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                     if (!this.noteTexture || !this.noteTexture.complete) {
                         this.noteTexture = new Image();
-                        this.noteTexture.src = 'waveform.png';
+                        this.noteTexture.src = 'src/medias/images/waveform.png';
                         this.noteTexture.onload = () => {
                             this.applyTexture(ev);
                             this.redraw();
