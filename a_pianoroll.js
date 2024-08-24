@@ -185,9 +185,94 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         this.updateTimer = function () {
             this.tick2time = 4 * 60 / this.tempo / this.timebase;
         };
-        this.play = function (actx, playcallback, tick) {
+        // this.play = function (actx, playcallback, tick) {
+        //     function Interval() {
+        //         const current = this.actx.currentTime;
+        //         while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
+        //             this.timestack.shift();
+        //         }
+        //         this.cursor = this.timestack[0][1] + (current - this.timestack[0][0]) / this.timestack[0][2];
+        //         this.redrawMarker();
+        //         while (current + this.preload >= this.time1) {
+        //             this.time0 = this.time1;
+        //             this.tick0 = this.tick1;
+        //             let e = this.sequence[this.index1];
+        //             if (!e || e.t >= this.markend) {
+        //                 this.timestack.push([this.time1, this.markstart, this.tick2time]);
+        //                 const p = this.findNextEv(this.markstart);
+        //                 this.time1 += p.dt * this.tick2time;
+        //                 this.index1 = p.i;
+        //             } else {
+        //                 this.tick1 = e.t;
+        //                 this.timestack.push([this.time1, e.t, this.tick2time]);
+        //                 let gmax = Math.min(e.t + e.g, this.markend) - e.t;
+        //                 if (this.editmode == "gridmono" || this.editmode == "gridpoly")
+        //                     gmax *= this.gridnoteratio;
+        //                 const cbev = {t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n};
+        //                 if (this.playcallback)
+        //                     this.playcallback(cbev);
+        //                 e = this.sequence[++this.index1];
+        //                 if (!e || e.t >= this.markend) {
+        //                     this.time1 += (this.markend - this.tick1) * this.tick2time;
+        //                     const p = this.findNextEv(this.markstart);
+        //                     this.timestack.push([this.time1, this.markstart, this.tick2time]);
+        //                     this.time1 += p.dt * this.tick2time;
+        //                     this.index1 = p.i;
+        //                 } else
+        //                     this.time1 += (e.t - this.tick1) * this.tick2time;
+        //             }
+        //         }
+        //     }
+        //
+        //     if (typeof (tick) != "undefined")
+        //         this.locate(tick);
+        //     if (this.timer != null)
+        //         return;
+        //     this.actx = actx;
+        //     this.playcallback = playcallback;
+        //     this.timestack = [];
+        //     this.time0 = this.time1 = this.actx.currentTime + 0.1;
+        //     this.tick0 = this.tick1 = this.cursor;
+        //     this.tick2time = 4 * 60 / this.tempo / this.timebase;
+        //     const p = this.findNextEv(this.cursor);
+        //     this.index1 = p.i;
+        //     this.timestack.push([0, this.cursor, 0]);
+        //     this.timestack.push([this.time0, this.cursor, this.tick2time]);
+        //     this.time1 += p.dt * this.tick2time;
+        //     if (p.i < 0)
+        //         this.timestack.push([this.time1, this.markstart, this.tick2time]);
+        //     else
+        //         this.timestack.push([this.time1, p.t1, this.tick2time]);
+        //     this.timer = setInterval(Interval.bind(this), 25);
+        // };
+
+        this.play = function (playcallback, tick) {
+            if (typeof(tick) != "undefined") {
+                this.locate(tick);
+            }
+            if (this.timer != null) {
+                return;
+            }
+
+            this.playcallback = playcallback;
+            this.timestack = [];
+            this.time0 = this.time1 = performance.now() / 1000 + 0.1; // Utilisation de performance.now()
+            this.tick0 = this.tick1 = this.cursor;
+            this.tick2time = 4 * 60 / this.tempo / this.timebase;
+            const p = this.findNextEv(this.cursor);
+            this.index1 = p.i;
+            this.timestack.push([0, this.cursor, 0]);
+            this.timestack.push([this.time0, this.cursor, this.tick2time]);
+            this.time1 += p.dt * this.tick2time;
+            if (p.i < 0) {
+                this.timestack.push([this.time1, this.markstart, this.tick2time]);
+            } else {
+                this.timestack.push([this.time1, p.t1, this.tick2time]);
+            }
+            this.timer = setInterval(Interval.bind(this), 25);
+
             function Interval() {
-                const current = this.actx.currentTime;
+                const current = performance.now() / 1000; // Utilisation de performance.now()
                 while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
                     this.timestack.shift();
                 }
@@ -206,11 +291,13 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                         this.tick1 = e.t;
                         this.timestack.push([this.time1, e.t, this.tick2time]);
                         let gmax = Math.min(e.t + e.g, this.markend) - e.t;
-                        if (this.editmode == "gridmono" || this.editmode == "gridpoly")
+                        if (this.editmode == "gridmono" || this.editmode == "gridpoly") {
                             gmax *= this.gridnoteratio;
+                        }
                         const cbev = {t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n};
-                        if (this.playcallback)
+                        if (this.playcallback) {
                             this.playcallback(cbev);
+                        }
                         e = this.sequence[++this.index1];
                         if (!e || e.t >= this.markend) {
                             this.time1 += (this.markend - this.tick1) * this.tick2time;
@@ -218,34 +305,15 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                             this.timestack.push([this.time1, this.markstart, this.tick2time]);
                             this.time1 += p.dt * this.tick2time;
                             this.index1 = p.i;
-                        } else
+                        } else {
                             this.time1 += (e.t - this.tick1) * this.tick2time;
+                        }
                     }
                 }
             }
-
-            if (typeof (tick) != "undefined")
-                this.locate(tick);
-            if (this.timer != null)
-                return;
-            this.actx = actx;
-            this.playcallback = playcallback;
-            this.timestack = [];
-            this.time0 = this.time1 = this.actx.currentTime + 0.1;
-            this.tick0 = this.tick1 = this.cursor;
-            this.tick2time = 4 * 60 / this.tempo / this.timebase;
-            const p = this.findNextEv(this.cursor);
-            this.index1 = p.i;
-            this.timestack.push([0, this.cursor, 0]);
-            this.timestack.push([this.time0, this.cursor, this.tick2time]);
-            this.time1 += p.dt * this.tick2time;
-            if (p.i < 0)
-                this.timestack.push([this.time1, this.markstart, this.tick2time]);
-            else
-                this.timestack.push([this.time1, p.t1, this.tick2time]);
-            this.timer = setInterval(Interval.bind(this), 25);
         };
         this.stop = function () {
+
             if (this.timer)
                 clearInterval(this.timer);
             this.timer = null;
@@ -1383,19 +1451,19 @@ function aRoll(id, target) {
 
 /// app below
 
-function setTempol() {
-    let pianoRoll = document.getElementById("proll");
+function setTempo(id) {
+    let pianoRoll = document.getElementById(id);
     pianoRoll.tempo = 33;
     pianoRoll.updateTimer();
     console.log('Tempo:', pianoRoll.tempo);
 }
 
-function changeEditMode(mode) {
-    document.getElementById('proll').editmode = mode;
+function changeEditMode(id,mode) {
+    document.getElementById(id).editmode = mode;
 }
 
-function AddNote() {
-    let sequence = document.getElementById("proll");
+function AddNote(id) {
+    let sequence = document.getElementById(id);
     sequence.addNote(
         0, // Tick
         66, // Note
@@ -1406,27 +1474,27 @@ function AddNote() {
     );
 }
 
-function setMarkStart() {
-    let sequence = document.getElementById("proll");
+function setMarkStart(id) {
+    let sequence = document.getElementById(id);
     sequence.markstart = (3)
 }
 
-function setMarkEnd() {
-    let sequence = document.getElementById("proll");
+function setMarkEnd(id) {
+    let sequence = document.getElementById(id);
     sequence.markend = (7)
 }
 
-function playHead() {
-    let sequence = document.getElementById("proll");
+function playHead(id) {
+    let sequence = document.getElementById(id);
     sequence.locate(3);
 }
 
-function menu() {
+function menu(id) {
     console.log('open a menu here!!!')
 }
 
-function editing() {
-    let sequence = document.getElementById("proll");
+function editing(id) {
+    let sequence = document.getElementById(id);
     if (sequence.editing) {
         sequence.editing = false
         sequence.tool = 'select'
@@ -1466,8 +1534,8 @@ function createExtendedNote(notes) {
 }
 
 
-function deleteSelectedNotes() {
-    let pianoroll = document.getElementById("proll");
+function deleteSelectedNotes(id) {
+    let pianoroll = document.getElementById(id);
     let sequence = pianoroll.sequence;
     if (Array.isArray(sequence)) {
         pianoroll.sequence = sequence.filter(note => note.f !== 1);
@@ -1477,8 +1545,8 @@ function deleteSelectedNotes() {
     }
 }
 
-function group() {
-    let sequence = document.getElementById("proll");
+function group(id) {
+    let sequence = document.getElementById(id);
     let notes = sequence.sequence;
     let newNote = createExtendedNote(notes)
     let noteToDel = [];
@@ -1496,23 +1564,23 @@ function group() {
     sequence.addNote(newNote.t, 60, newNote.g, 8, 1, 'group', {in: 0, out: 0, group: noteToDel});
 }
 
-function notes() {
-    let sequence = document.getElementById("proll");
+function notes(id) {
+    let sequence = document.getElementById(id);
     let notes = sequence.sequence;
     console.log(notes)
 
 }
 
-function selectAll() {
-    let pianoroll = document.getElementById("proll");
+function selectAll(id) {
+    let pianoroll = document.getElementById(id);
     pianoroll.sequence.forEach(note => {
         note.f = 1;
     });
     pianoroll.redraw();
 }
 
-function deSelectAll() {
-    let pianoroll = document.getElementById("proll");
+function deSelectAll(id) {
+    let pianoroll = document.getElementById(id);
     pianoroll.sequence.forEach(note => {
         note.f = 0;
     });
