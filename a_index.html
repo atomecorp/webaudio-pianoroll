@@ -22,16 +22,23 @@
         }
 
         function play() {
-            actx.resume();
+            // actx.resume();
             document.getElementById("proll").play(actx, Callback);
+        }
+
+        function stop() {
+            document.getElementById('proll').stop()
         }
     </script>
 </head>
 <body>
-<webaudio-pianoroll id="proll" width="800" height="320"></webaudio-pianoroll>
-<button onclick="init_audio()">init</button>
+
+<div id="view"></div>
+<button onclick="aRoll('proll','view')">init pianoroll</button>
+<button onclick="setTempol()">set tempo</button>
+<!--<button onclick="init_audio()">init audio</button>-->
 <button onclick="play()">Play</button>
-<button onclick="document.getElementById('proll').stop()">Stop</button>
+<button onclick="stop()">Stop</button>
 <button onclick="changeEditMode('dragmono')">Drag Mono</button>
 <button onclick="changeEditMode('dragpoly')">Drag Poly</button>
 <button onclick="AddNote()">Add Note</button>
@@ -46,6 +53,7 @@
 <button onclick="deSelectAll()">de-select all</button>
 <button onclick="deleteSelectedNotes()">delete selection</button>
 <button onclick="clear_now()">clear console</button>
-
+<!--// TODO: add add limited / custom pianoroll-->
+<!--// TODO: undo-->
 </body>
 </html>
