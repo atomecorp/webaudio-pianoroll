@@ -6,6 +6,7 @@
         var actx, osc, gain;
 
         function init_audio() {
+            alert('kool');
             timebase = 16;
             actx = new AudioContext();
             osc = actx.createOscillator();
@@ -46,7 +47,7 @@
 <body>
 
 <div id="view"></div>
-<button onclick="aRoll('proll','view')">init pianoroll</button>
+<button onclick="aRoll('proll','view'), init_audio()">init pianoroll</button>
 <button onclick="setTempo('proll')">set tempo</button>
 <button onclick="play()">Play</button>
 <button onclick="stop()">Stop</button>
