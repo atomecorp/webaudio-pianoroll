@@ -543,7 +543,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                 if (!this.noteTexture || !this.noteTexture.complete) {
                     this.noteTexture = new Image();
-                    this.noteTexture.src = 'waveform.png';
+                    this.noteTexture.src = 'medias/images/waveform.png';
                     this.noteTexture.onload = () => {
                         this.applyTexture(ev);
                     };
@@ -688,7 +688,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                     if (!this.noteTexture || !this.noteTexture.complete) {
                         this.noteTexture = new Image();
-                        this.noteTexture.src = 'waveform.png';
+                        this.noteTexture.src = 'medias/images/waveform.png';
                         this.noteTexture.onload = () => {
                             this.applyTexture(ev);
                             this.redraw();
@@ -842,6 +842,15 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 el.addEventListener("mouseout", this.pointerout.bind(this), false);
             }
         };
+
+        this.handleKeyboardClick = function (e) {
+            const kbRect = this.kb.getBoundingClientRect();
+            const clickY = e.clientY - kbRect.top; // Position Y du clic relative à #wac-kb
+
+            // Calcule le numéro de la note basée sur la position Y du clic
+            const noteNumber = Math.floor(clickY / this.steph);
+            console.log("note to trig :", noteNumber);
+        };
         this.ready = function () {
             this.body = root.children[1];
             this.elem = root.childNodes[2];
@@ -857,6 +866,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             this.rcMenu = {x: 0, y: 0, width: 0, height: 0};
             this.lastx = 0;
             this.lasty = 0;
+            this.kb.addEventListener('click', this.handleKeyboardClick.bind(this), false);
             this.canvas.addEventListener('mousemove', this.mousemove.bind(this), false);
             this.canvas.addEventListener('keydown', this.keydown.bind(this), false);
             this.canvas.addEventListener('DOMMouseScroll', this.wheel.bind(this), false);
@@ -1372,7 +1382,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
 /// pianoroll creator  :
 function aRoll(id, target, width, height) {
- // we build the pianoroll here
+    // we build the pianoroll here
     const pianoRoll = document.createElement('webaudio-pianoroll');
 
     pianoRoll.setAttribute('id', id);
