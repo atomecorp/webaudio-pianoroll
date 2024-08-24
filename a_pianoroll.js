@@ -1371,14 +1371,14 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
 
 /// pianoroll creator  :
-function aRoll(id, target) {
-
+function aRoll(id, target, width, height) {
+ // we build the pianoroll here
     const pianoRoll = document.createElement('webaudio-pianoroll');
 
     pianoRoll.setAttribute('id', id);
 
-    pianoRoll.setAttribute('width', '800');
-    pianoRoll.setAttribute('height', '320');
+    pianoRoll.setAttribute('width', width);
+    pianoRoll.setAttribute('height', height);
 
     const targetElement = document.getElementById(target);
 
