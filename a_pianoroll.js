@@ -798,7 +798,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             if (this.downht.i >= 0) {
                 let clickedNote = this.sequence[this.downht.i];
                 let noteId = clickedNote.id;
-                console.log("Note ID :", noteId);
+                console.log("Note ID :", noteId+ ' note type: '+clickedNote.type);
             }
 
 
@@ -1371,6 +1371,10 @@ function deSelectAll() {
         note.f = 0;
     });
     pianoroll.redraw();
+}
+
+function clear_now(){
+    console.clear()
 }
 
 
