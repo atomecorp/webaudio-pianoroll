@@ -495,7 +495,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 if(ev.f)
                     this.sequence.splice(i,1);
             }
-            this.refuse= true
+            this.refuse= true // to prevent any new note creation when clicking to delete
         };
         this.moveSelectedNote=function(dt,dn){
             console.log('moving note')
@@ -763,7 +763,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
         this.keydown=function(e){
             switch(e.keyCode){
-            case 8://delNote
+            case 8://delNote using backspace keu
                 this.delSelectedNote();
                 this.redraw();
                 break;
@@ -771,11 +771,11 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
         this.popMenu=function(pos){
             console.log('pop menu call from shortcut')
-            const s=this.menu.style;
-            s.display="block";
-            s.top=(pos.y+8)+"px";
-            s.left=(pos.x+8)+"px";
-            this.rcMenu=this.menu.getBoundingClientRect();
+            // const s=this.menu.style;
+            // s.display="block";
+            // s.top=(pos.y+8)+"px";
+            // s.left=(pos.x+8)+"px";
+            // this.rcMenu=this.menu.getBoundingClientRect();
         };
         this.longtapcountup=function(){
             if(++this.longtapcount >= 18){
@@ -791,96 +791,106 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             }
         };
         this.pointerdown=function(ev) {
+            // console.log('here 0');
             let e;
-            if(!this.enable)
+            if (!this.enable) {
+                console.log('here 1');
                 return;
-            if(ev.touches)
+            }
+
+            if (ev.touches) {
+                console.log('here 2');
+
                 e = ev.touches[0];
-            else
-                e = ev;
-            this.rcTarget=this.canvas.getBoundingClientRect();
-            this.downpos=this.getPos(e);
-            this.downht=this.hitTest(this.downpos);
+            } else{
+                console.log('here start 3');
+            e = ev;
+            this.rcTarget = this.canvas.getBoundingClientRect();
+            this.downpos = this.getPos(e);
+            this.downht = this.hitTest(this.downpos);
+
+            if (this.downht.i >= 0) {
+                // Récupérer l'ID de la note cliquée
+                let clickedNote = this.sequence[this.downht.i];
+                let noteId = clickedNote.id;
+                console.log("Note ID cliquée:", noteId);
+            }
+
 
             this.longtapcount = 0;
-            this.longtaptimer = setInterval(this.longtapcountup.bind(this),100);
-            window.addEventListener("touchmove", this.bindpointermove,false);
-            window.addEventListener("mousemove",this.bindpointermove,false);
-            window.addEventListener("touchend",this.bindcancel);
-            window.addEventListener("mouseup",this.bindcancel);
-            window.addEventListener("contextmenu",this.bindcontextmenu);
-            // switch(this.downht.m){
-            //     case "N":
-            //     case "B":
-            //     case "E":
-            //         console.log('open menu');
-            //         this.popMenu(this.downpos);
-            //         this.dragging={o:"m"};
-            //         break;
-            //     default:
-            //         if(this.editmode=="dragmono"||this.editmode=="dragpoly")
-            //             this.dragging={o:"A",p:this.downpos,p2:this.downpos,t1:this.downht.t,n1:this.downht.n};
-            //         break;
-            // }
-            // ev.preventDefault();
-            // ev.stopPropagation();
-            // this.canvas.focus();
-            // return false;
+            this.longtaptimer = setInterval(this.longtapcountup.bind(this), 100);
+            window.addEventListener("touchmove", this.bindpointermove, false);
+            window.addEventListener("mousemove", this.bindpointermove, false);
+            window.addEventListener("touchend", this.bindcancel);
+            window.addEventListener("mouseup", this.bindcancel);
+            window.addEventListener("contextmenu", this.bindcontextmenu);
 
-            if(e.button==2||e.ctrlKey){
-                switch(this.downht.m){
-                case "N":
-                case "B":
-                case "E":
-                    console.log('open menu');
-                    this.popMenu(this.downpos);
-                    this.dragging={o:"m"};
-                    break;
-                default:
-                    if(this.editmode=="dragmono"||this.editmode=="dragpoly")
-                        this.dragging={o:"A",p:this.downpos,p2:this.downpos,t1:this.downht.t,n1:this.downht.n};
-                    break;
+
+            if (e.button == 2 || e.ctrlKey ) {
+
+               console.log(' open the menu now!!!')
+                switch (this.downht.m) {
+                    case "N":
+                    case "B":
+                    case "E":
+                        console.log('open menu');
+                        this.popMenu(this.downpos);
+                        this.dragging = {o: "m"};
+                        break;
+                    default:
+                        if (this.editmode == "dragmono" || this.editmode == "dragpoly")
+                            this.dragging = {
+                                o: "A",
+                                p: this.downpos,
+                                p2: this.downpos,
+                                t1: this.downht.t,
+                                n1: this.downht.n
+                            };
+                        break;
                 }
                 ev.preventDefault();
                 ev.stopPropagation();
                 this.canvas.focus();
                 return false;
             }
-            switch(e.target){
-            case this.markendimg:
-                this.dragging={o:"E",x:this.downpos.x,m:this.markend};
-                ev.preventDefault();
-                ev.stopPropagation();
-                return false;
-            case this.markstartimg:
-                this.dragging={o:"S",x:this.downpos.x,m:this.markstart};
-                ev.preventDefault();
-                ev.stopPropagation();
-                return false;
-            case this.cursorimg:
-                this.dragging={o:"P",x:this.downpos.x,m:this.cursor};
-                ev.preventDefault();
-                ev.stopPropagation();
-                return false;
+            switch (e.target) {
+                case this.markendimg:
+                    this.dragging = {o: "E", x: this.downpos.x, m: this.markend};
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return false;
+                case this.markstartimg:
+                    this.dragging = {o: "S", x: this.downpos.x, m: this.markstart};
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return false;
+                case this.cursorimg:
+                    this.dragging = {o: "P", x: this.downpos.x, m: this.cursor};
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return false;
             }
-            this.dragging={o:null,x:this.downpos.x,y:this.downpos.y,offsx:this.xoffset,offsy:this.yoffset};
+            this.dragging = {o: null, x: this.downpos.x, y: this.downpos.y, offsx: this.xoffset, offsy: this.yoffset};
             this.canvas.focus();
-            switch(this.editmode){
-            case "gridpoly":
-            case "gridmono":
-                this.editGridDown(this.downpos);
-                break;
-            case "dragpoly":
-            case "dragmono":
-                this.editDragDown(this.downpos);
-                break;
+            switch (this.editmode) {
+                case "gridpoly":
+                case "gridmono":
+                    this.editGridDown(this.downpos);
+                    break;
+                case "dragpoly":
+                case "dragmono":
+                    this.editDragDown(this.downpos);
+                    break;
             }
             this.press = 1;
-            if(ev.preventDefault)
+            if (ev.preventDefault)
                 ev.preventDefault();
-            if(ev.stopPropagation)
+            if (ev.stopPropagation)
                 ev.stopPropagation();
+                console.log('here ends 3');
+                // alert('stop');
             return false;
+        }
         };
         this.mousemove=function(e){
             if(this.dragging.o==null){
@@ -971,11 +981,12 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 clearInterval(this.longtaptimer);
             const pos=this.getPos(e);
             if(this.dragging.o=="m"){
-                this.menu.style.display="none";
-                this.rcMenu={x:0,y:0,width:0,height:0};
-                if(pos.t==this.menu)
-                    this.delSelectedNote();
-                this.redraw();
+                // this.menu.style.display="none";
+                // this.rcMenu={x:0,y:0,width:0,height:0};
+                // if(pos.t==this.menu)
+                //     alert('case 2')
+                //     this.delSelectedNote();
+                // this.redraw();
             }
             if(this.dragging.o=="A"){
                 this.selAreaNote(this.dragging.t1,this.dragging.t2,this.dragging.n1,this.dragging.n2);
@@ -1275,10 +1286,10 @@ function playHead() {
 }
 
 function menu() {
-    console.log('add a menu here!!!')
-    let sequence = document.getElementById("proll");
-    // sequence.editing = false
-    sequence.delSelectedNote();
+    console.log('open a menu here!!!')
+    // let sequence = document.getElementById("proll");
+    // // sequence.editing = false
+    // sequence.delSelectedNote();
 
     // sequence.editing = true
 }
@@ -1393,4 +1404,4 @@ function deleteSelectedNotes() {
     }
 }
 
-console.log('add undo, and cancel before deleting, select all')
+console.log('add undo, and cancel before deleting')
