@@ -543,7 +543,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                 if (!this.noteTexture || !this.noteTexture.complete) {
                     this.noteTexture = new Image();
-                    this.noteTexture.src = 'src/medias/images/waveform.png';
+                    this.noteTexture.src = 'waveform.png';
                     this.noteTexture.onload = () => {
                         this.applyTexture(ev);
                     };
@@ -688,7 +688,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                     if (!this.noteTexture || !this.noteTexture.complete) {
                         this.noteTexture = new Image();
-                        this.noteTexture.src = 'src/medias/images/waveform.png';
+                        this.noteTexture.src = 'waveform.png';
                         this.noteTexture.onload = () => {
                             this.applyTexture(ev);
                             this.redraw();
