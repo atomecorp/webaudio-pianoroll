@@ -22,9 +22,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
     }
     connectedCallback(){
         let root;
-//        if(this.attachShadow)
-//          root=this.attachShadow({mode: 'open'});
-//        else
           root=this;
         this.module = {
             is:"webaudio-pianoroll",
@@ -435,10 +432,11 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             ht.m="s";
             return ht;
         };
-        this.addNote=function(t,n,g,v,f){
+        this.addNote=function(t,n,g,v,f,  type = 'note'){
             if(t>=0 && n>=0 && n<128){
                 const id = this.noteIdCounter++;
-                const ev = { id: id, t: t, n: n, g: g, v: v, f: f };
+                const ev = { id: id, t: t, n: n, g: g, v: v, f: f, type: type };
+                console.log('programatic note creation  : '+id+ ' type: '+type);
                 this.sequence.push(ev);
                 this.sortSequence();
                 this.redraw();
@@ -514,7 +512,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             }
         };
         this.clearSel=function(){
-            console.log('deselecting note');
             const l=this.sequence.length;
             for(let i=0;i<l;++i){
                 this.sequence[i].f=0;
@@ -563,14 +560,13 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             else if(ht.m=="s"&&ht.t>=0){
                 this.clearSel();
 
-                if(this.editing == true && !this.refuse){
+                if(this.editing === true && !this.refuse){
                     var t=((ht.t/this.snap)|0)*this.snap;
                     const id = this.noteIdCounter++;
-                    console.log('3 note. created : '+id); // Ajoutez ce log
-                    this.sequence.push({id: id,t:t, n:ht.n|0, g:1, f:1});
+                    console.log('visual note creation  : '+id);
+                    this.sequence.push({id: id,t:t, n:ht.n|0, g:1, f:1, type: 'note'});
                     this.dragging={o:"D",m:"E",i:this.sequence.length-1, t:t, g:1, ev:[{t:t,g:1,ev:this.sequence[this.sequence.length-1]}]};
                     this.refuse=false
-                    console.log('===> accept/refuse'+this.refuse)
                 }
                 else{
                     switch(this.downht.m){
@@ -613,7 +609,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                             if(this.editmove=="dragmono")
                                 this.delAreaNote(ev.t,ev.g);
                         }
-
                     }
                     this.redraw();
                     break;
@@ -631,7 +626,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                             if(this.editmove=="dragmono")
                                 this.delAreaNote(ev.t,ev.g);
                         }
-
                     }
                     this.redraw();
                     break;
@@ -653,8 +647,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                     break;
                 case "N":
                     ev=this.sequence[this.dragging.i];
-                    console.log('4 note. dragged : '); // Ajoutez ce log
-
+                    console.log('4 note. dragged : ');
                     this.moveSelectedNote((ht.t-this.dragging.t)|0, (ht.n|0)-this.dragging.n);
                     this.redraw();
                     break;
@@ -771,11 +764,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
         this.popMenu=function(pos){
             console.log('pop menu call from shortcut')
-            // const s=this.menu.style;
-            // s.display="block";
-            // s.top=(pos.y+8)+"px";
-            // s.left=(pos.x+8)+"px";
-            // this.rcMenu=this.menu.getBoundingClientRect();
         };
         this.longtapcountup=function(){
             if(++this.longtapcount >= 18){
@@ -791,7 +779,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             }
         };
         this.pointerdown=function(ev) {
-            // console.log('here 0');
             let e;
             if (!this.enable) {
                 console.log('here 1');
@@ -803,17 +790,15 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                 e = ev.touches[0];
             } else{
-                console.log('here start 3');
             e = ev;
             this.rcTarget = this.canvas.getBoundingClientRect();
             this.downpos = this.getPos(e);
             this.downht = this.hitTest(this.downpos);
 
             if (this.downht.i >= 0) {
-                // Récupérer l'ID de la note cliquée
                 let clickedNote = this.sequence[this.downht.i];
                 let noteId = clickedNote.id;
-                console.log("Note ID cliquée:", noteId);
+                console.log("Note ID :", noteId);
             }
 
 
@@ -887,8 +872,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 ev.preventDefault();
             if (ev.stopPropagation)
                 ev.stopPropagation();
-                console.log('here ends 3');
-                // alert('stop');
             return false;
         }
         };
@@ -967,7 +950,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 this.editDragMove(pos);
                 break;
             }
-//            ev.preventDefault();
+           ev.preventDefault();
             ev.stopPropagation();
             return false;
         };
@@ -981,12 +964,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 clearInterval(this.longtaptimer);
             const pos=this.getPos(e);
             if(this.dragging.o=="m"){
-                // this.menu.style.display="none";
-                // this.rcMenu={x:0,y:0,width:0,height:0};
-                // if(pos.t==this.menu)
-                //     alert('case 2')
-                //     this.delSelectedNote();
-                // this.redraw();
+
             }
             if(this.dragging.o=="A"){
                 this.selAreaNote(this.dragging.t1,this.dragging.t2,this.dragging.n1,this.dragging.n2);
@@ -1192,12 +1170,12 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             for(let s=0; s<l; ++s){
                 const ev=this.sequence[s];
                 if(ev.f){
-                    console.log('add selected note color')
+                    console.log('add selected note color,  to : '+ev.id)
                     this.ctx.fillStyle=this.colnotesel;
                 }
 
                 else{
-                    console.log('add note color')
+                    console.log('add base note color,  to :'+ev.id)
                     this.ctx.fillStyle=this.colnote;
                 }
 
@@ -1207,14 +1185,18 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 y=this.height - (ev.n-this.yoffset)*this.steph;
                 y2=(y-this.steph)|0; y|=0;
                 this.ctx.fillRect(x,y,x2-x,y2-y);
-                if(ev.f)
-                    this.ctx.fillStyle=this.colnoteselborder;
-                else
-                    this.ctx.fillStyle=this.colnoteborder;
-                this.ctx.fillRect(x,y,1,y2-y);
-                this.ctx.fillRect(x2,y,1,y2-y);
-                this.ctx.fillRect(x,y,x2-x,1);
-                this.ctx.fillRect(x,y2,x2-x,1);
+                // if(ev.f){
+                //     this.ctx.fillStyle=this.colnoteselborder;
+                //
+                // }
+                // else{
+                //     this.ctx.fillStyle=this.colnoteborder;
+                //     this.ctx.fillRect(x,y,1,y2-y);
+                //     this.ctx.fillRect(x2,y,1,y2-y);
+                //     this.ctx.fillRect(x,y,x2-x,1);
+                //     this.ctx.fillRect(x,y2,x2-x,1);
+                // }
+
             }
             this.redrawYRuler();
             this.redrawXRuler();
@@ -1223,12 +1205,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
         this.ready();
     }
-    sendEvent(ev){
-        let event;
-        event=document.createEvent("HTMLEvents");
-        event.initEvent(ev,false,true);
-        this.dispatchEvent(event);
-    }
+
     getAttr(n,def){
         let v=this.getAttribute(n);
         if(v==""||v==null) return def;
@@ -1241,9 +1218,8 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         }
         return v;
     }
-    disconnectedCallback(){}
 });
-//// add on methods
+
 
 
 function changeEditMode(mode) {
@@ -1265,8 +1241,9 @@ function AddNote() {
         0, // Tick
         66, // Note
         2, // Duration
-        39, //???
-        48  // ????
+        39, // velocity???
+        0, // selected or not
+        'notes' // type (group)
     );
 }
 
@@ -1287,11 +1264,6 @@ function playHead() {
 
 function menu() {
     console.log('open a menu here!!!')
-    // let sequence = document.getElementById("proll");
-    // // sequence.editing = false
-    // sequence.delSelectedNote();
-
-    // sequence.editing = true
 }
 
 function editing() {
@@ -1310,23 +1282,19 @@ function editing() {
 
 function createExtendedNote(notes) {
     if (notes.length === 0) {
-        return null;  // Si la liste des notes est vide, retourner null ou une autre valeur appropriée
+        return null;
     }
 
-    // Filtrer les notes sélectionnées (f = 1)
     let selectedNotes = notes.filter(note => note.f === 1);
 
     if (selectedNotes.length === 0) {
-        return null;  // Si aucune note n'est sélectionnée, retourner null
+        return null;
     }
 
-    // Trouver la note qui commence le plus tôt parmi les notes sélectionnées
     let earliestStartNote = selectedNotes.reduce((earliest, note) => note.t < earliest.t ? note : earliest, selectedNotes[0]);
 
-    // Trouver la note qui se termine le plus tard parmi les notes sélectionnées
     let latestEndNote = selectedNotes.reduce((latest, note) => (note.t + note.g) > (latest.t + latest.g) ? note : latest, selectedNotes[0]);
 
-    // Créer la nouvelle note
     let newNote = {
         id: Math.max(...notes.map(note => note.id)) + 1,  // Générer un nouvel ID basé sur les IDs existants
         t: earliestStartNote.t,  // Timecode du début de la première note sélectionnée
@@ -1337,35 +1305,62 @@ function createExtendedNote(notes) {
 
     let sequence = document.getElementById("proll");
 
-    // Ajouter la nouvelle note à la séquence
-    sequence.addNote(
-        0,                   // Track par défaut
-        newNote.t,           // Timecode du début de la nouvelle note
-        newNote.g,           // Durée de la nouvelle note
-        newNote.n,           // Pitch de la nouvelle note
-        48                   // Vélocité par défaut (modifiable selon vos besoins)
-    );
 
+    // sequence.addNote(
+    //     0,                   // Tick
+    //     newNote.t,           //  Note
+    //     newNote.g,           //  Duration
+    //     newNote.n,           // velocity
+    //    100 , // selected or not
+    //     'notes'
+    // );
     return newNote;
 }
+
+
+function deleteSelectedNotes() {
+    let pianoroll = document.getElementById("proll");
+
+    let sequence = pianoroll.sequence;
+
+    if (Array.isArray(sequence)) {
+        pianoroll.sequence = sequence.filter(note => note.f !== 1);
+
+        if (typeof pianoroll.redraw === 'function') {
+            pianoroll.redraw();
+        }
+
+
+    }
+}
+function group() {
+    let sequence = document.getElementById("proll");
+    let notes = sequence.sequence;
+    let newNote=createExtendedNote(notes)
+    let noteToDel=[];
+notes.forEach(note => {
+    if (note.f===1){
+        noteToDel.push(note)
+    }
+});
+    noteToDel.forEach(note => {
+        const index = sequence.sequence.indexOf(note);
+        if (index !== -1) {
+            sequence.sequence.splice(index, 1);
+        }
+    });
+    sequence.addNote(newNote.t, 60,newNote.g, 8, 1, 'group');
+}
+
 function notes() {
     let sequence = document.getElementById("proll");
     let notes = sequence.sequence;
-    console.log('note liste : ' +notes)
     console.log(notes)
-
-    console.log('---------')
-
-    console.log(createExtendedNote(notes))
-    let newNote=createExtendedNote(notes)
-    deleteSelectedNotes()
-    sequence.addNote(newNote.t, 60,newNote.g, 8, 48);
-
 }
 function selectAll() {
     let pianoroll = document.getElementById("proll");
     pianoroll.sequence.forEach(note => {
-        note.f = 1; // Marque la note comme sélectionnée
+        note.f = 1;
     });
     pianoroll.redraw();
 }
@@ -1373,35 +1368,11 @@ function selectAll() {
 function deSelectAll() {
     let pianoroll = document.getElementById("proll");
     pianoroll.sequence.forEach(note => {
-        note.f = 0; // Marque la note comme sélectionnée
+        note.f = 0;
     });
     pianoroll.redraw();
 }
 
-function deleteSelectedNotes() {
-    // Obtenir l'élément Pianoroll
-    let pianoroll = document.getElementById("proll");
 
-    // Accéder à la séquence des notes, qui est probablement une propriété de l'objet Pianoroll
-    let sequence = pianoroll.sequence;
 
-    // Vérifier si la séquence est bien un tableau
-    if (Array.isArray(sequence)) {
-        // Filtrer et conserver uniquement les notes non sélectionnées
-        pianoroll.sequence = sequence.filter(note => note.f !== 1);
-
-        // Redessiner pour refléter les changements
-        if (typeof pianoroll.redraw === 'function') {
-            pianoroll.redraw();
-        }
-
-        // Optionnel : Si vous avez une méthode layout pour ajuster la disposition, vous pouvez l'appeler aussi
-        if (typeof pianoroll.layout === 'function') {
-            pianoroll.layout();
-        }
-    } else {
-        console.error("La séquence des notes n'est pas un tableau.");
-    }
-}
-
-console.log('add undo, and cancel before deleting')
+console.log('add add limited/custom pianoroll, add extra infos to note(start, end, loop), add extra design to note(waveform), undo')
