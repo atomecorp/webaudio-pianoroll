@@ -4,6 +4,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         this.noteIdCounter = 0;
         this.editing= true
         this.refuse= false
+        this.tool= 'create'
     }
     defineprop(){
         const plist=this.module.properties;
@@ -432,14 +433,71 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             ht.m="s";
             return ht;
         };
-        this.addNote=function(t,n,g,v,f,  type = 'note'){
-            if(t>=0 && n>=0 && n<128){
+        this.applyTexture = function(ev) {
+            if (this.noteTexture.complete) {
+                const w = ev.g * this.stepw;
+                const x = (ev.t - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+                const y = this.height - (ev.n - this.yoffset) * this.steph;
+                const x2 = (x + w) | 0;
+                const y2 = (y - this.steph) | 0;
+
+                if (ev.f) {
+                    this.ctx.fillStyle = this.colnotesel; // Vert si sélectionnée
+                } else {
+                    this.ctx.fillStyle = this.colnote; // Rouge si non sélectionnée
+                }
+                this.ctx.fillRect(x, y2, x2 - x, y - y2);
+
+                this.ctx.globalAlpha = 0.5; // Réglez l'opacité de la texture
+                this.ctx.drawImage(this.noteTexture, x, y2, x2 - x, y - y2);
+                this.ctx.globalAlpha = 1.0; // Réinitialisez l'opacité pour les dessins suivants
+                ev.textureApplied = true;
+            }
+        };
+
+        // this.addNote=function(t,n,g,v,f,  type = 'note'){
+        //     if(t>=0 && n>=0 && n<128){
+        //         const id = this.noteIdCounter++;
+        //         var details ={in: 0 , out: 0, group:{}}
+        //         const ev = { id: id, t: t, n: n, g: g, v: v, f: f, type: type ,details: details};
+        //         console.log('programatic note creation  : '+id+ ' type: '+type+', details'+details);
+        //         //// add on
+        //             this.noteTexture = new Image();
+        //             this.noteTexture.src = 'waveform.png'; // Remplacez par le chemin de votre image
+        //             this.noteTexture.onload = () => {
+        //                 this.applyTexture(ev);
+        //                 this.redraw();
+        //             };
+        //         ////
+        //         this.sequence.push(ev);
+        //         this.sortSequence();
+        //         this.redraw();
+        //         return ev;
+        //     }
+        //     return null;
+        // };
+
+        this.addNote = function(t, n, g, v, f, type = 'note', details= {}) {
+            if (t >= 0 && n >= 0 && n < 128) {
                 const id = this.noteIdCounter++;
-                const ev = { id: id, t: t, n: n, g: g, v: v, f: f, type: type };
-                console.log('programatic note creation  : '+id+ ' type: '+type);
+                // var details = {in: 0, out: 0, group: {}};
+                const ev = { id: id, t: t, n: n, g: g, v: v, f: f, type: type, details: details };
+                console.log('programatic note creation  : ' + id + ' type: ' + type + ', details' + details);
+
+                //// Ajout de l'image seulement si elle n'est pas déjà chargée
+                if (!this.noteTexture || !this.noteTexture.complete) {
+                    this.noteTexture = new Image();
+                    this.noteTexture.src = 'waveform.png'; // Remplacez par le chemin de votre image
+                    this.noteTexture.onload = () => {
+                        this.applyTexture(ev);
+                    };
+                } else {
+                    this.applyTexture(ev);
+                }
+
                 this.sequence.push(ev);
                 this.sortSequence();
-                this.redraw();
+                this.redraw();  // Dessine une seule fois après l'ajout de la note
                 return ev;
             }
             return null;
@@ -546,12 +604,14 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 this.redraw();
             }
             else if(ht.m=="E"){
+                this.tool='trim_end'
                 const ev = this.sequence[ht.i];
                 console.log('1  note end changed:'); // Ajoutez ce log
 
                 this.dragging={o:"D", m:"E", i:ht.i, t:ev.t, g:ev.g, ev:this.selectedNotes()};
             }
             else if(ht.m=="B"){
+                this.tool='trim_start'
                 const ev = this.sequence[ht.i];
                 console.log('2 note start changed:'); // Ajoutez ce log
 
@@ -561,12 +621,30 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 this.clearSel();
 
                 if(this.editing === true && !this.refuse){
-                    var t=((ht.t/this.snap)|0)*this.snap;
+                    var t = ((ht.t / this.snap) | 0) * this.snap;
                     const id = this.noteIdCounter++;
-                    console.log('visual note creation  : '+id);
-                    this.sequence.push({id: id,t:t, n:ht.n|0, g:1, f:1, type: 'note'});
-                    this.dragging={o:"D",m:"E",i:this.sequence.length-1, t:t, g:1, ev:[{t:t,g:1,ev:this.sequence[this.sequence.length-1]}]};
-                    this.refuse=false
+                    console.log('visual note creation  : ' + id);
+                    var details = { in: 0, out: 0, group: {} };
+
+                    // Créez d'abord l'objet note et ajoutez-le à la séquence
+                    const ev = { id: id, t: t, n: ht.n | 0, g: 1, f: 1, type: 'note', details: details, textureApplied: false };
+                    this.sequence.push(ev);
+
+                    // Appliquez ensuite la texture
+                    if (!this.noteTexture || !this.noteTexture.complete) {
+                        this.noteTexture = new Image();
+                        this.noteTexture.src = 'waveform.png'; // Remplacez par le chemin de votre image
+                        this.noteTexture.onload = () => {
+                            this.applyTexture(ev); // Appliquez la texture maintenant que `ev` est défini
+                            this.redraw(); // Redessinez après avoir appliqué la texture
+                        };
+                    } else {
+                        this.applyTexture(ev); // Si la texture est déjà chargée, appliquez-la immédiatement
+                        this.redraw(); // Redessinez immédiatement
+                    }
+
+                    this.dragging = { o: "D", m: "E", i: this.sequence.length - 1, t: t, g: 1, ev: [{ t: t, g: 1, ev: this.sequence[this.sequence.length - 1] }] };
+                    this.refuse = false;
                 }
                 else{
                     switch(this.downht.m){
@@ -646,6 +724,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                     this.redraw();
                     break;
                 case "N":
+                    this.tool='drag'
                     ev=this.sequence[this.dragging.i];
                     console.log('4 note. dragged : ');
                     this.moveSelectedNote((ht.t-this.dragging.t)|0, (ht.n|0)-this.dragging.n);
@@ -798,7 +877,11 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             if (this.downht.i >= 0) {
                 let clickedNote = this.sequence[this.downht.i];
                 let noteId = clickedNote.id;
-                console.log("Note ID :", noteId+ ' note type: '+clickedNote.type);
+                console.log("Note ID :", noteId+ ' note type: '+clickedNote.type+', note detail : '+clickedNote.details);
+                console.log('-- details below ---')
+                console.log(clickedNote.details.group)
+                console.log(clickedNote.details.in)
+                console.log('-- end details ---')
             }
 
 
@@ -1158,51 +1241,91 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 this.ctx.fillRect(this.dragging.p.x,this.dragging.p.y,this.dragging.p2.x-this.dragging.p.x,this.dragging.p2.y-this.dragging.p.y);
             }
         };
-        this.redraw=function() {
-            let x,w,y,x2,y2;
-            if(!this.ctx)
-                return;
-            this.ctx.clearRect(0,0,this.width,this.height);
-            this.stepw = this.swidth/this.xrange;
-            this.steph = this.sheight/this.yrange;
+        // this.redraw=function() {
+        //     let x,w,y,x2,y2;
+        //     if(!this.ctx)
+        //         return;
+        //     this.ctx.clearRect(0,0,this.width,this.height);
+        //     this.stepw = this.swidth/this.xrange;
+        //     this.steph = this.sheight/this.yrange;
+        //     this.redrawGrid();
+        //     const l=this.sequence.length;
+        //     for(let s=0; s<l; ++s){
+        //         const ev=this.sequence[s];
+        //         if(ev.f){
+        //             console.log('tool active: '+this.tool+',  length : '+ev.g+' start: '+ev.t)
+        //             this.ctx.fillStyle=this.colnotesel;
+        //         }
+        //
+        //         else{
+        //             console.log('add base note color,  to :'+ev.id)
+        //             this.ctx.fillStyle=this.colnote;
+        //         }
+        //
+        //         w=ev.g*this.stepw;
+        //         x=(ev.t-this.xoffset)*this.stepw+this.yruler+this.kbwidth;
+        //         x2=(x+w)|0; x|=0;
+        //         y=this.height - (ev.n-this.yoffset)*this.steph;
+        //         y2=(y-this.steph)|0; y|=0;
+        //         this.ctx.fillRect(x,y,x2-x,y2-y);
+        //         // if(ev.f){
+        //         //     this.ctx.fillStyle=this.colnoteselborder;
+        //         //
+        //         // }
+        //         // else{
+        //         //     this.ctx.fillStyle=this.colnoteborder;
+        //         //     this.ctx.fillRect(x,y,1,y2-y);
+        //         //     this.ctx.fillRect(x2,y,1,y2-y);
+        //         //     this.ctx.fillRect(x,y,x2-x,1);
+        //         //     this.ctx.fillRect(x,y2,x2-x,1);
+        //         // }
+        //         // console.log('call applyTexture')
+        //         // this.applyTexture(ev);
+        //     }
+        //     this.redrawYRuler();
+        //     this.redrawXRuler();
+        //     this.redrawMarker();
+        //     this.redrawAreaSel();
+        // };
+
+        this.redraw = function() {
+            let x, w, y;
+            if (!this.ctx) return;
+
+            this.ctx.clearRect(0, 0, this.width, this.height);
+            this.stepw = this.swidth / this.xrange;
+            this.steph = this.sheight / this.yrange;
+
             this.redrawGrid();
-            const l=this.sequence.length;
-            for(let s=0; s<l; ++s){
-                const ev=this.sequence[s];
-                if(ev.f){
-                    console.log('add selected note color,  to : '+ev.id)
-                    this.ctx.fillStyle=this.colnotesel;
+
+            const l = this.sequence.length;
+            for (let s = 0; s < l; ++s) {
+                const ev = this.sequence[s];
+                const noteHeight = this.steph; // Utilisez `this.steph` pour la hauteur exacte
+                console.log('tool active: '+this.tool+',  length : '+ev.g+' start: '+ev.t)
+
+                if (ev.f) {
+                    this.ctx.fillStyle = this.colnotesel; // Vert si sélectionnée
+                } else {
+                    this.ctx.fillStyle = this.colnote; // Rouge si non sélectionnée
                 }
 
-                else{
-                    console.log('add base note color,  to :'+ev.id)
-                    this.ctx.fillStyle=this.colnote;
-                }
+                w = ev.g * this.stepw;
+                x = (ev.t - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+                y = this.height - (ev.n - this.yoffset) * this.steph;
 
-                w=ev.g*this.stepw;
-                x=(ev.t-this.xoffset)*this.stepw+this.yruler+this.kbwidth;
-                x2=(x+w)|0; x|=0;
-                y=this.height - (ev.n-this.yoffset)*this.steph;
-                y2=(y-this.steph)|0; y|=0;
-                this.ctx.fillRect(x,y,x2-x,y2-y);
-                // if(ev.f){
-                //     this.ctx.fillStyle=this.colnoteselborder;
-                //
-                // }
-                // else{
-                //     this.ctx.fillStyle=this.colnoteborder;
-                //     this.ctx.fillRect(x,y,1,y2-y);
-                //     this.ctx.fillRect(x2,y,1,y2-y);
-                //     this.ctx.fillRect(x,y,x2-x,1);
-                //     this.ctx.fillRect(x,y2,x2-x,1);
-                // }
+                this.ctx.fillRect(x, y - noteHeight, w, noteHeight); // Appliquez `noteHeight` ici
 
+                // Appliquez ensuite la texture par-dessus
+                this.applyTexture(ev);
             }
+
             this.redrawYRuler();
             this.redrawXRuler();
             this.redrawMarker();
             this.redrawAreaSel();
         };
+
         this.ready();
     }
 
@@ -1270,10 +1393,12 @@ function editing() {
     let sequence = document.getElementById("proll");
  if   ( sequence.editing){
      sequence.editing = false
+     sequence.tool = 'select'
      console.log('no editing')
  }else
  {
      sequence.editing = true
+     sequence.tool = 'create'
      console.log('editing active')
  }
 
@@ -1349,13 +1474,14 @@ notes.forEach(note => {
             sequence.sequence.splice(index, 1);
         }
     });
-    sequence.addNote(newNote.t, 60,newNote.g, 8, 1, 'group');
+    sequence.addNote(newNote.t, 60,newNote.g, 8, 1, 'group', {in: 0, out: 0,group: noteToDel});
 }
 
 function notes() {
     let sequence = document.getElementById("proll");
     let notes = sequence.sequence;
     console.log(notes)
+
 }
 function selectAll() {
     let pianoroll = document.getElementById("proll");
@@ -1379,4 +1505,4 @@ function clear_now(){
 
 
 
-console.log('add add limited/custom pianoroll, add extra infos to note(start, end, loop), add extra design to note(waveform), undo')
+console.log('add add limited/custom pianoroll,   undo')
