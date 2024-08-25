@@ -277,6 +277,14 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 // Démarrage de la boucle d'animation
             this.timer = requestAnimationFrame(playLoop);
 
+// Méthode pour arrêter l'animation
+            this.stop = function() {
+                if (this.timer) {
+                    cancelAnimationFrame(this.timer);
+                    this.timer = null;
+                }
+            };
+
 
             // this.timer = setInterval(Interval.bind(this), 25);
             //
