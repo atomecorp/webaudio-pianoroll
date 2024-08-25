@@ -29,6 +29,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
     marker(position, id, label) {
         const playhead = document.createElement("div");
         playhead.className = "marker";
+        playhead.style.position = "absolute";
         playhead.style.left = `${(position - this.xoffset) * this.stepw + this.yruler + this.kbwidth}px`;
 
         // Ajout de l'id et du label comme contenu de la div
@@ -36,6 +37,19 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         playhead.dataset.id = id;
         playhead.dataset.label = label;
         playhead.textContent = label; // Le label est affiché comme contenu de la div
+
+        // Création du trait rouge
+        const locator = document.createElement("div");
+        locator.style.position = "absolute";
+        locator.style.width = "2px"; // Épaisseur du trait
+        locator.style.height = "100%"; // S'étend sur toute la hauteur du conteneur
+        locator.style.backgroundColor = "red";
+        locator.style.left = '0px'; // Positionner au centre du playhead
+        locator.style.top = '0px';
+        locator.style.transform = "translateX(-50%)"; // Centrer précisément le trait
+
+        // Ajouter le trait rouge au marker
+        playhead.appendChild(locator);
 
         playhead.addEventListener('click', () => {
             alert(`Playhead ID: ${id}`);
@@ -73,6 +87,19 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         });
 
         this.canvas.parentElement.appendChild(playhead);
+    }
+
+    removeMarker(id) {
+        // Trouver le marker dans le DOM par son ID
+        const playhead = document.getElementById(id);
+
+        // Si le marker existe, le supprimer du DOM
+        if (playhead) {
+            playhead.parentElement.removeChild(playhead);
+            console.log(`Playhead with ID: ${id} has been removed.`);
+        } else {
+            console.log(`Playhead with ID: ${id} does not exist.`);
+        }
     }
     ///////////////// end marker add on
 
@@ -1658,10 +1685,11 @@ function deSelectAll(id) {
 
 function marker(id) {
     const pianoRoll = document.getElementById(id);
-
-// Appeler la méthode marker pour créer un nouveau playhead
     pianoRoll.marker(12, 'playheadID1', 'My First Playhead');
-
+}
+function removeMarker(id) {
+    const pianoRoll = document.getElementById(id);
+    pianoRoll.removeMarker('playheadID1');
 }
 
 ///
