@@ -1658,7 +1658,6 @@ function deSelectAll(id) {
     pianoroll.redraw();
 }
 
-
 function marker(id) {
     const pianoRoll = document.getElementById(id);
     pianoRoll.marker(12, 'playheadID1', 'My First Playhead');
