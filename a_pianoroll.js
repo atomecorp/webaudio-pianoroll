@@ -1,6 +1,3 @@
-
-
-
 customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement {
     constructor() {
         super();
@@ -41,25 +38,36 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         playhead.textContent = label; // Le label est affiché comme contenu de la div
 
         playhead.addEventListener('click', () => {
-            alert(`Playhead ID: ${position}`);
+            alert(`Playhead ID: ${id}`);
         });
 
         playhead.addEventListener('mousedown', (e) => {
             const initialX = e.clientX;
             const initialLeft = parseInt(playhead.style.left, 10);
+
             const onMouseMove = (e) => {
                 const deltaX = e.clientX - initialX;
-                const newLeft = initialLeft + deltaX;
+                let newLeft = initialLeft + deltaX;
+
+                // Calculer la nouvelle position brute
+                let newPosition = (newLeft - this.yruler - this.kbwidth) / this.stepw + this.xoffset;
+
+                // Appliquer la contrainte de grille (quantization)
+                newPosition = Math.round(newPosition / this.snap) * this.snap;
+
+                // Recalculer la position en pixels après quantization
+                newLeft = (newPosition - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
                 playhead.style.left = `${newLeft}px`;
 
-                const newPosition = Math.max(0, (newLeft - this.yruler - this.kbwidth) / this.stepw + this.xoffset);
-                console.log(`Playhead ${id} moved to position: ${newPosition}`);
-                position=newPosition;
+                // Log de la nouvelle position quantifiée
+                console.log(`Playhead ${id} moved to quantized position: ${newPosition}`);
             };
+
             const onMouseUp = () => {
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
             };
+
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
@@ -1497,7 +1505,6 @@ function aRoll(id, target, width, height) {
     const pianoRoll = document.createElement('webaudio-pianoroll');
 
     pianoRoll.setAttribute('id', id);
-
     pianoRoll.setAttribute('width', width);
     pianoRoll.setAttribute('height', height);
 
