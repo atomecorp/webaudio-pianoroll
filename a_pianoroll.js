@@ -1,3 +1,6 @@
+
+
+
 customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement {
     constructor() {
         super();
@@ -185,7 +188,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         this.updateTimer = function () {
             this.tick2time = 4 * 60 / this.tempo / this.timebase;
         };
-
         this.play = function (playcallback, tick) {
             if (typeof(tick) != "undefined") {
                 this.locate(tick);
@@ -209,48 +211,115 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             } else {
                 this.timestack.push([this.time1, p.t1, this.tick2time]);
             }
-            this.timer = setInterval(Interval.bind(this), 25);
 
-            function Interval() {
-                const current = performance.now() / 1000; // Utilisation de performance.now()
-                while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
-                    this.timestack.shift();
-                }
-                this.cursor = this.timestack[0][1] + (current - this.timestack[0][0]) / this.timestack[0][2];
-                this.redrawMarker();
-                while (current + this.preload >= this.time1) {
-                    this.time0 = this.time1;
-                    this.tick0 = this.tick1;
-                    let e = this.sequence[this.index1];
-                    if (!e || e.t >= this.markend) {
-                        this.timestack.push([this.time1, this.markstart, this.tick2time]);
-                        const p = this.findNextEv(this.markstart);
-                        this.time1 += p.dt * this.tick2time;
-                        this.index1 = p.i;
-                    } else {
-                        this.tick1 = e.t;
-                        this.timestack.push([this.time1, e.t, this.tick2time]);
-                        let gmax = Math.min(e.t + e.g, this.markend) - e.t;
-                        if (this.editmode == "gridmono" || this.editmode == "gridpoly") {
-                            gmax *= this.gridnoteratio;
-                        }
-                        const cbev = {t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n};
-                        if (this.playcallback) {
-                            this.playcallback(cbev);
-                        }
-                        e = this.sequence[++this.index1];
+            const frameRate = 1000 / 40; // Intervalle de 25ms, équivalent à 40 FPS
+            let lastTime = performance.now();
+
+            const playLoop = () => {
+                const currentTime = performance.now();
+                const deltaTime = currentTime - lastTime;
+
+                if (deltaTime >= frameRate) {
+                    const current = performance.now() / 1000; // Utilisation de performance.now()
+
+                    while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
+                        this.timestack.shift();
+                    }
+
+                    this.cursor = this.timestack[0][1] + (current - this.timestack[0][0]) / this.timestack[0][2];
+                    this.redrawMarker();
+
+                    while (current + this.preload >= this.time1) {
+                        this.time0 = this.time1;
+                        this.tick0 = this.tick1;
+                        let e = this.sequence[this.index1];
+
                         if (!e || e.t >= this.markend) {
-                            this.time1 += (this.markend - this.tick1) * this.tick2time;
-                            const p = this.findNextEv(this.markstart);
                             this.timestack.push([this.time1, this.markstart, this.tick2time]);
+                            const p = this.findNextEv(this.markstart);
                             this.time1 += p.dt * this.tick2time;
                             this.index1 = p.i;
                         } else {
-                            this.time1 += (e.t - this.tick1) * this.tick2time;
+                            this.tick1 = e.t;
+                            this.timestack.push([this.time1, e.t, this.tick2time]);
+                            let gmax = Math.min(e.t + e.g, this.markend) - e.t;
+
+                            if (this.editmode == "gridmono" || this.editmode == "gridpoly") {
+                                gmax *= this.gridnoteratio;
+                            }
+
+                            const cbev = { t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n };
+
+                            if (this.playcallback) {
+                                this.playcallback(cbev);
+                            }
+
+                            e = this.sequence[++this.index1];
+
+                            if (!e || e.t >= this.markend) {
+                                this.time1 += (this.markend - this.tick1) * this.tick2time;
+                                const p = this.findNextEv(this.markstart);
+                                this.timestack.push([this.time1, this.markstart, this.tick2time]);
+                                this.time1 += p.dt * this.tick2time;
+                                this.index1 = p.i;
+                            } else {
+                                this.time1 += (e.t - this.tick1) * this.tick2time;
+                            }
                         }
                     }
+
+                    lastTime = currentTime; // Réinitialiser le temps pour le prochain frame
                 }
-            }
+
+                this.timer = requestAnimationFrame(playLoop);
+            };
+
+// Démarrage de la boucle d'animation
+            this.timer = requestAnimationFrame(playLoop);
+
+
+            // this.timer = setInterval(Interval.bind(this), 25);
+            //
+            // function Interval() {
+            //     const current = performance.now() / 1000; // Utilisation de performance.now()
+            //     while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
+            //         this.timestack.shift();
+            //     }
+            //     this.cursor = this.timestack[0][1] + (current - this.timestack[0][0]) / this.timestack[0][2];
+            //     this.redrawMarker();
+            //     while (current + this.preload >= this.time1) {
+            //         this.time0 = this.time1;
+            //         this.tick0 = this.tick1;
+            //         let e = this.sequence[this.index1];
+            //         if (!e || e.t >= this.markend) {
+            //             this.timestack.push([this.time1, this.markstart, this.tick2time]);
+            //             const p = this.findNextEv(this.markstart);
+            //             this.time1 += p.dt * this.tick2time;
+            //             this.index1 = p.i;
+            //         } else {
+            //             this.tick1 = e.t;
+            //             this.timestack.push([this.time1, e.t, this.tick2time]);
+            //             let gmax = Math.min(e.t + e.g, this.markend) - e.t;
+            //             if (this.editmode == "gridmono" || this.editmode == "gridpoly") {
+            //                 gmax *= this.gridnoteratio;
+            //             }
+            //             const cbev = {t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n};
+            //             if (this.playcallback) {
+            //                 this.playcallback(cbev);
+            //             }
+            //             e = this.sequence[++this.index1];
+            //             if (!e || e.t >= this.markend) {
+            //                 this.time1 += (this.markend - this.tick1) * this.tick2time;
+            //                 const p = this.findNextEv(this.markstart);
+            //                 this.timestack.push([this.time1, this.markstart, this.tick2time]);
+            //                 this.time1 += p.dt * this.tick2time;
+            //                 this.index1 = p.i;
+            //             } else {
+            //                 this.time1 += (e.t - this.tick1) * this.tick2time;
+            //             }
+            //         }
+            //     }
+            // }
         };
         this.stop = function () {
 
@@ -532,9 +601,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 ev.textureApplied = true;
             }
         };
-
-
-
         this.addNote = function (t, n, g, v, f, type = 'note', details = {}) {
             if (t >= 0 && n >= 0 && n < 128) {
                 const id = this.noteIdCounter++;
@@ -842,7 +908,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 el.addEventListener("mouseout", this.pointerout.bind(this), false);
             }
         };
-
         this.handleKeyboardClick = function (e) {
             const kbRect = this.kb.getBoundingClientRect();
             const clickY = e.clientY - kbRect.top; // Position Y du clic relative à #wac-kb
@@ -1324,7 +1389,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 this.ctx.fillRect(this.dragging.p.x, this.dragging.p.y, this.dragging.p2.x - this.dragging.p.x, this.dragging.p2.y - this.dragging.p.y);
             }
         };
-
         this.redraw = function () {
             let x, w, y;
             if (!this.ctx) return;
@@ -1361,7 +1425,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             this.redrawMarker();
             this.redrawAreaSel();
         };
-
         this.ready();
     }
 
