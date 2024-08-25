@@ -17,14 +17,13 @@
         }
 
         function Callback(ev) {
-            console.log('kooll!!')
             const currentTime = actx.currentTime;
             const startTime = currentTime + (ev.t - performance.now() / 1000);
             const endTime = currentTime + (ev.g - performance.now() / 1000);
             osc.detune.setValueAtTime((ev.n - 69) * 100, startTime);
             gain.gain.setTargetAtTime(0.5, startTime, 0.005);
             gain.gain.setTargetAtTime(0, endTime, 0.1);
-            console.log('ok')
+            console.log('playing : '+ev.t)
         }
 
         function play() {
@@ -69,7 +68,7 @@
 
 
 <button onclick="clear_now()">clear console</button>
-<!--// TODO: add add limited / custom name on pianoroll ,markers, song structure -->
-<!--// TODO:  grid on marker , callback when play on marker, add line option,update position marker undo-->
+<!--// TODO: add add limited / custom name on pianoroll , song structure -->
+<!--// TODO:  undo-->
 </body>
 </html>
