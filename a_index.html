@@ -17,13 +17,14 @@
         }
 
         function Callback(ev) {
+            console.log('kooll!!')
             const currentTime = actx.currentTime;
             const startTime = currentTime + (ev.t - performance.now() / 1000);
             const endTime = currentTime + (ev.g - performance.now() / 1000);
             osc.detune.setValueAtTime((ev.n - 69) * 100, startTime);
             gain.gain.setTargetAtTime(0.5, startTime, 0.005);
             gain.gain.setTargetAtTime(0, endTime, 0.1);
-            console.log(ev.marker)
+            console.log('ok')
         }
 
         function play() {

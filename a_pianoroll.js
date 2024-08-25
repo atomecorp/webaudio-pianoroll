@@ -26,6 +26,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
     }
 
     //////////////// marker add on
+
     marker(position, id, label) {
         const playhead = document.createElement("div");
         playhead.className = "marker";
@@ -36,7 +37,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         playhead.id = id;
         playhead.dataset.id = id;
         playhead.dataset.label = label;
-        playhead.textContent = label; // Le label est affiché comme contenu de la div
+        playhead.textContent = label;
 
         // Création du trait rouge
         const locator = document.createElement("div");
@@ -75,6 +76,13 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
                 // Log de la nouvelle position quantifiée
                 console.log(`Playhead ${id} moved to quantized position: ${newPosition}`);
+
+                // Mettre à jour la position du marker dans la séquence
+                const markerEvent = this.sequence.find(ev => ev.id === id && ev.type === 'marker');
+                if (markerEvent) {
+                    markerEvent.t = newPosition;
+                    console.log(`Updated event in sequence for marker ID: ${id}, new position: ${newPosition}`);
+                }
             };
 
             const onMouseUp = () => {
@@ -87,18 +95,117 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         });
 
         this.canvas.parentElement.appendChild(playhead);
+        const ev = {
+            id: id,
+            t: position,
+            n: 0,  // Les markers ne sont pas associés à une hauteur de note
+            g: 0,  // Les markers n'ont pas de durée
+            f: 1,  // Par défaut, marqué comme sélectionné
+            type: 'marker',  // Type spécifique 'marker'
+            details: { label: label, element: playhead },
+            textureApplied: false
+        };
+
+        // Ajouter le marker à la séquence
+        this.sequence.push(ev);
     }
+    // marker(position, id, label) {
+    //     const playhead = document.createElement("div");
+    //     playhead.className = "marker";
+    //     playhead.style.position = "absolute";
+    //     playhead.style.left = `${(position - this.xoffset) * this.stepw + this.yruler + this.kbwidth}px`;
+    //
+    //     // Ajout de l'id et du label comme contenu de la div
+    //     playhead.id = id;
+    //     playhead.dataset.id = id;
+    //     playhead.dataset.label = label;
+    //     playhead.textContent = label; // Le label est affiché comme contenu de la div
+    //
+    //     // Création du trait rouge
+    //     const locator = document.createElement("div");
+    //     locator.style.position = "absolute";
+    //     locator.style.width = "2px"; // Épaisseur du trait
+    //     locator.style.height = "100%"; // S'étend sur toute la hauteur du conteneur
+    //     locator.style.backgroundColor = "red";
+    //     locator.style.left = '0px'; // Positionner au centre du playhead
+    //     locator.style.top = '0px';
+    //     locator.style.transform = "translateX(-50%)"; // Centrer précisément le trait
+    //
+    //     // Ajouter le trait rouge au marker
+    //     playhead.appendChild(locator);
+    //
+    //     playhead.addEventListener('click', () => {
+    //         alert(`Playhead ID: ${id}`);
+    //     });
+    //
+    //     playhead.addEventListener('mousedown', (e) => {
+    //         const initialX = e.clientX;
+    //         const initialLeft = parseInt(playhead.style.left, 10);
+    //
+    //         const onMouseMove = (e) => {
+    //             const deltaX = e.clientX - initialX;
+    //             let newLeft = initialLeft + deltaX;
+    //
+    //             // Calculer la nouvelle position brute
+    //             let newPosition = (newLeft - this.yruler - this.kbwidth) / this.stepw + this.xoffset;
+    //
+    //             // Appliquer la contrainte de grille (quantization)
+    //             newPosition = Math.round(newPosition / this.snap) * this.snap;
+    //
+    //             // Recalculer la position en pixels après quantization
+    //             newLeft = (newPosition - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+    //             playhead.style.left = `${newLeft}px`;
+    //
+    //             // Log de la nouvelle position quantifiée
+    //             console.log(`Playhead ${id} moved to quantized position: ${newPosition}`);
+    //         };
+    //
+    //         const onMouseUp = () => {
+    //             document.removeEventListener('mousemove', onMouseMove);
+    //             document.removeEventListener('mouseup', onMouseUp);
+    //         };
+    //
+    //         document.addEventListener('mousemove', onMouseMove);
+    //         document.addEventListener('mouseup', onMouseUp);
+    //     });
+    //
+    //     this.canvas.parentElement.appendChild(playhead);
+    //     const ev = {
+    //         id: id,
+    //         t: position,
+    //         n: -1,
+    //         g: 2,  // Petite valeur par défaut pour éviter les problèmes
+    //         f: 2,
+    //         type: 'markers',
+    //         details: { label: label, element: playhead },
+    //         textureApplied: false
+    //     };
+    //
+    //     // Ajouter le marker à la séquence
+    //     this.sequence.push(ev);
+    // }
+
+
 
     removeMarker(id) {
         // Trouver le marker dans le DOM par son ID
         const playhead = document.getElementById(id);
 
-        // Si le marker existe, le supprimer du DOM
+        // Si le marker existe dans le DOM, le supprimer
         if (playhead) {
             playhead.parentElement.removeChild(playhead);
             console.log(`Playhead with ID: ${id} has been removed.`);
         } else {
             console.log(`Playhead with ID: ${id} does not exist.`);
+        }
+
+        // Supprimer l'événement associé dans la séquence
+        const eventIndex = this.sequence.findIndex(ev => ev.id === id && ev.type === 'marker');
+        if (eventIndex !== -1) {
+            this.sequence.splice(eventIndex, 1);
+            console.log(`Event associated with marker ID: ${id} has been removed from the sequence.`);
+        } else {
+            console.log(`No event found in the sequence for marker ID: ${id}.`);
         }
     }
     ///////////////// end marker add on
@@ -290,31 +397,38 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             const frameRate = 1000 / 40; // Intervalle de 25ms, équivalent à 40 FPS
             let lastTime = performance.now();
 
+
+
             const playLoop = () => {
                 const currentTime = performance.now();
                 const deltaTime = currentTime - lastTime;
 
                 if (deltaTime >= frameRate) {
-                    const current = performance.now() / 1000; // Utilisation de performance.now()
+                    const current = performance.now() / 1000;
 
+                    // Supprimez les événements obsolètes de la pile de temps
                     while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
                         this.timestack.shift();
                     }
 
+                    // Mettez à jour la position du curseur
                     this.cursor = this.timestack[0][1] + (current - this.timestack[0][0]) / this.timestack[0][2];
                     this.redrawMarker();
 
+                    // Traitez les événements jusqu'à ce que le temps actuel soit couvert par le time1
                     while (current + this.preload >= this.time1) {
                         this.time0 = this.time1;
                         this.tick0 = this.tick1;
                         let e = this.sequence[this.index1];
 
                         if (!e || e.t >= this.markend) {
+                            // Si nous atteignons la fin, recommencez à markstart
                             this.timestack.push([this.time1, this.markstart, this.tick2time]);
                             const p = this.findNextEv(this.markstart);
                             this.time1 += p.dt * this.tick2time;
                             this.index1 = p.i;
                         } else {
+                            // Mettre à jour le tick1 et ajouter l'événement au time stack
                             this.tick1 = e.t;
                             this.timestack.push([this.time1, e.t, this.tick2time]);
                             let gmax = Math.min(e.t + e.g, this.markend) - e.t;
@@ -323,11 +437,22 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                                 gmax *= this.gridnoteratio;
                             }
 
-                            const cbev = { t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n };
+                            console.log('Event type:', e.type); // Debugging log
 
-                            if (this.playcallback) {
-                                this.playcallback(cbev);
-                            }
+                            // if (e.type === 'marker') {
+                            //     // Traitez le marker ici
+                            //     console.log('Marker event detected:', e);
+                            //     if (this.playcallback) {
+                            //         this.playcallback(e);  // Appel du callback pour le marker
+                            //     }
+                            // } else {
+                                // Traitez les notes ici
+                                const cbev = { t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n };
+
+                                if (this.playcallback) {
+                                    this.playcallback(cbev);
+                                }
+                            // }
 
                             e = this.sequence[++this.index1];
 
@@ -346,8 +471,71 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                     lastTime = currentTime; // Réinitialiser le temps pour le prochain frame
                 }
 
+                // Redémarrez la boucle
                 this.timer = requestAnimationFrame(playLoop);
             };
+
+
+
+
+            // const playLoop = () => {
+            //     const currentTime = performance.now();
+            //     const deltaTime = currentTime - lastTime;
+            //
+            //     if (deltaTime >= frameRate) {
+            //         const current = performance.now() / 1000; // Utilisation de performance.now()
+            //
+            //         while (this.timestack.length > 1 && current >= this.timestack[1][0]) {
+            //             this.timestack.shift();
+            //         }
+            //
+            //         this.cursor = this.timestack[0][1] + (current - this.timestack[0][0]) / this.timestack[0][2];
+            //         this.redrawMarker();
+            //
+            //         while (current + this.preload >= this.time1) {
+            //             this.time0 = this.time1;
+            //             this.tick0 = this.tick1;
+            //             let e = this.sequence[this.index1];
+            //
+            //             if (!e || e.t >= this.markend) {
+            //                 this.timestack.push([this.time1, this.markstart, this.tick2time]);
+            //                 const p = this.findNextEv(this.markstart);
+            //                 this.time1 += p.dt * this.tick2time;
+            //                 this.index1 = p.i;
+            //             } else {
+            //                 this.tick1 = e.t;
+            //                 this.timestack.push([this.time1, e.t, this.tick2time]);
+            //                 let gmax = Math.min(e.t + e.g, this.markend) - e.t;
+            //
+            //                 if (this.editmode == "gridmono" || this.editmode == "gridpoly") {
+            //                     gmax *= this.gridnoteratio;
+            //                 }
+            //
+            //                 const cbev = { t: this.time1, g: this.time1 + gmax * this.tick2time, n: e.n };
+            //
+            //                 if (this.playcallback) {
+            //                     this.playcallback(cbev);
+            //                 }
+            //
+            //                 e = this.sequence[++this.index1];
+            //
+            //                 if (!e || e.t >= this.markend) {
+            //                     this.time1 += (this.markend - this.tick1) * this.tick2time;
+            //                     const p = this.findNextEv(this.markstart);
+            //                     this.timestack.push([this.time1, this.markstart, this.tick2time]);
+            //                     this.time1 += p.dt * this.tick2time;
+            //                     this.index1 = p.i;
+            //                 } else {
+            //                     this.time1 += (e.t - this.tick1) * this.tick2time;
+            //                 }
+            //             }
+            //         }
+            //
+            //         lastTime = currentTime; // Réinitialiser le temps pour le prochain frame
+            //     }
+            //
+            //     this.timer = requestAnimationFrame(playLoop);
+            // };
 
 // Démarrage de la boucle d'animation
             this.timer = requestAnimationFrame(playLoop);
@@ -664,7 +852,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             return ht;
         };
         this.applyTexture = function (ev) {
-            if (this.noteTexture.complete) {
+            if (this.noteTexture && this.noteTexture.complete) {
                 const w = ev.g * this.stepw;
                 const x = (ev.t - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
                 const y = this.height - (ev.n - this.yoffset) * this.steph;
@@ -672,18 +860,41 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 const y2 = (y - this.steph) | 0;
 
                 if (ev.f) {
-                    this.ctx.fillStyle = this.colnotesel; // green if  sélectied
+                    this.ctx.fillStyle = this.colnotesel; // vert si sélectionné
                 } else {
-                    this.ctx.fillStyle = this.colnote; // red if not  sélectied
+                    this.ctx.fillStyle = this.colnote; // rouge si non sélectionné
                 }
                 this.ctx.fillRect(x, y2, x2 - x, y - y2);
 
-                this.ctx.globalAlpha = 0.5; // texture opacity here
+                this.ctx.globalAlpha = 0.5; // opacité de la texture
                 this.ctx.drawImage(this.noteTexture, x, y2, x2 - x, y - y2);
-                this.ctx.globalAlpha = 1.0; //reset opacity for next drawing
+                this.ctx.globalAlpha = 1.0; // réinitialiser l'opacité
                 ev.textureApplied = true;
+            } else {
+                console.warn('noteTexture is not yet loaded or initialized.');
             }
         };
+        // this.applyTexture = function (ev) {
+        //     if (this.noteTexture.complete) {
+        //         const w = ev.g * this.stepw;
+        //         const x = (ev.t - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+        //         const y = this.height - (ev.n - this.yoffset) * this.steph;
+        //         const x2 = (x + w) | 0;
+        //         const y2 = (y - this.steph) | 0;
+        //
+        //         if (ev.f) {
+        //             this.ctx.fillStyle = this.colnotesel; // green if  sélectied
+        //         } else {
+        //             this.ctx.fillStyle = this.colnote; // red if not  sélectied
+        //         }
+        //         this.ctx.fillRect(x, y2, x2 - x, y - y2);
+        //
+        //         this.ctx.globalAlpha = 0.5; // texture opacity here
+        //         this.ctx.drawImage(this.noteTexture, x, y2, x2 - x, y - y2);
+        //         this.ctx.globalAlpha = 1.0; //reset opacity for next drawing
+        //         ev.textureApplied = true;
+        //     }
+        // };
         this.addNote = function (t, n, g, v, f, type = 'note', details = {}) {
             if (t >= 0 && n >= 0 && n < 128) {
                 const id = this.noteIdCounter++;
