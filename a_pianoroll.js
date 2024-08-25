@@ -28,6 +28,46 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         }
     }
 
+    //////////////// marker add on
+    marker(position, id, label) {
+        const playhead = document.createElement("div");
+        playhead.className = "marker";
+        playhead.style.left = `${(position - this.xoffset) * this.stepw + this.yruler + this.kbwidth}px`;
+
+        // Ajout de l'id et du label comme contenu de la div
+        playhead.id = id;
+        playhead.dataset.id = id;
+        playhead.dataset.label = label;
+        playhead.textContent = label; // Le label est affiché comme contenu de la div
+
+        playhead.addEventListener('click', () => {
+            alert(`Playhead ID: ${position}`);
+        });
+
+        playhead.addEventListener('mousedown', (e) => {
+            const initialX = e.clientX;
+            const initialLeft = parseInt(playhead.style.left, 10);
+            const onMouseMove = (e) => {
+                const deltaX = e.clientX - initialX;
+                const newLeft = initialLeft + deltaX;
+                playhead.style.left = `${newLeft}px`;
+
+                const newPosition = Math.max(0, (newLeft - this.yruler - this.kbwidth) / this.stepw + this.xoffset);
+                console.log(`Playhead ${id} moved to position: ${newPosition}`);
+                position=newPosition;
+            };
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        this.canvas.parentElement.appendChild(playhead);
+    }
+    ///////////////// end marker add on
+
     connectedCallback() {
         let root;
         root = this;
@@ -1607,6 +1647,17 @@ function deSelectAll(id) {
     });
     pianoroll.redraw();
 }
+
+
+function marker(id) {
+    const pianoRoll = document.getElementById(id);
+
+// Appeler la méthode marker pour créer un nouveau playhead
+    pianoRoll.marker(12, 'playheadID1', 'My First Playhead');
+
+}
+
+///
 
 function clear_now() {
     console.clear()
