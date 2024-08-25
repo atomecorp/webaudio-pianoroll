@@ -46,7 +46,7 @@
 <body>
 
 <div id="view"></div>
-<button onclick="aRoll('proll','view', 800, 600), init_audio()">init pianoroll</button>
+<button onclick="aRoll('proll','view', 800, 256), init_audio()">init pianoroll</button>
 <button onclick="setTempo('proll')">set tempo</button>
 <button onclick="play()">Play</button>
 <button onclick="stop()">Stop</button>
@@ -63,6 +63,10 @@
 <button onclick="selectAll('proll')">select all</button>
 <button onclick="deSelectAll('proll')">de-select all</button>
 <button onclick="deleteSelectedNotes('proll')">delete selection</button>
+<button onclick="newMarker('proll',3)">add marker</button>
+<button onclick="deleteMarker('proll',2)">delete marker</button>
+
+
 <button onclick="clear_now()">clear console</button>
 <!--// TODO: add add limited / custom pianoroll-->
 <!--// TODO: undo-->

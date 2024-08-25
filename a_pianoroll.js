@@ -5,7 +5,190 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         this.editing = true
         this.refuse = false
         this.tool = 'create'
+        this.markers = [];
     }
+
+/// marker
+    addMarker(position, label) {
+        if (!this.markers) {
+            this.markers = [];
+        }
+        const newMarker = {
+            id: this.markers.length + 1,
+            position: position,
+            label: label || `Marker ${this.markers.length + 1}`
+        };
+        this.markers.push(newMarker);
+        this.redrawMarkers();
+    }
+
+    removeMarker = function (id) {
+        this.markers = this.markers.filter(marker => marker.id !== id);
+        this.redraw();
+    };
+
+
+    enableMarkerDragging() {
+        let draggingMarker = null;
+        let initialX = 0;
+
+        this.canvas.addEventListener('mousedown', (e) => {
+            const mouseX = e.clientX - this.canvas.getBoundingClientRect().left;
+            draggingMarker = this.markers.find(marker => {
+                const markerPosition = (marker.position - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+                return Math.abs(mouseX - markerPosition) < 5; // Détecte si un marqueur est cliqué
+            });
+
+            if (draggingMarker) {
+                initialX = mouseX; // Capture la position initiale de la souris
+            }
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (draggingMarker) {
+                const mouseX = e.clientX - this.canvas.getBoundingClientRect().left;
+                const deltaX = mouseX - initialX; // Calcule le déplacement de la souris
+                const deltaTicks = deltaX / this.stepw; // Convertir en unités de temps
+
+                draggingMarker.position += deltaTicks; // Déplace le marqueur
+                initialX = mouseX;
+
+                this.redraw(); // Redessine la grille avec le marqueur déplacé
+            }
+        });
+
+        this.canvas.addEventListener('mouseup', () => {
+            if (draggingMarker) {
+                draggingMarker = null; // Arrête de déplacer le marqueur
+            }
+        });
+    }
+
+    redrawMarkers() {
+        this.markers.forEach(marker => {
+            const markerPosition = (marker.position - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+
+            // Dessiner le trait vertical pour le marqueur
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.beginPath();
+            this.ctx.moveTo(markerPosition, 0);
+            this.ctx.lineTo(markerPosition, this.height);
+            this.ctx.stroke();
+
+            // Dessiner le label du marqueur
+            this.ctx.fillStyle = '#000000';
+            this.ctx.font = '12px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(marker.label, markerPosition, this.xruler - 5);
+        });
+    }
+
+
+
+    // redrawMarkers() {
+    //     this.markers.forEach(marker => {
+    //         const markerPosition = (marker.position - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+    //
+    //         // Dessiner le trait vertical
+    //         this.ctx.strokeStyle = '#ff0000';
+    //         this.ctx.beginPath();
+    //         this.ctx.moveTo(markerPosition, 0);
+    //         this.ctx.lineTo(markerPosition, this.height);
+    //         this.ctx.stroke();
+    //
+    //         // Dessiner le label
+    //         this.ctx.fillStyle = '#000000';
+    //         this.ctx.font = '12px Arial';
+    //         this.ctx.textAlign = 'center';
+    //         this.ctx.fillText(marker.label, markerPosition, this.xruler - 5);
+    //
+    //         // Ajouter la gestion de l'édition des labels
+    //         this.canvas.addEventListener('dblclick', (e) => {
+    //             const mouseX = e.clientX - this.canvas.getBoundingClientRect().left;
+    //             const clickedMarker = this.markers.find(marker => {
+    //                 const markerPosition = (marker.position - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+    //                 return Math.abs(mouseX - markerPosition) < 5;
+    //             });
+    //
+    //             if (clickedMarker) {
+    //                 const input = document.createElement('input');
+    //                 input.type = 'text';
+    //                 input.value = clickedMarker.label;
+    //                 input.style.position = 'absolute';
+    //                 input.style.left = `${e.clientX}px`;
+    //                 input.style.top = `${e.clientY}px`;
+    //                 document.body.appendChild(input);
+    //
+    //                 input.focus();
+    //
+    //                 input.addEventListener('blur', () => {
+    //                     clickedMarker.label = input.value;
+    //                     document.body.removeChild(input);
+    //                     this.redraw();
+    //                 });
+    //
+    //                 input.addEventListener('keydown', (event) => {
+    //                     if (event.key === 'Enter') {
+    //                         input.blur();
+    //                     }
+    //                 });
+    //             }
+    //         });
+    //     });
+    // }
+
+/////////////////// not sure
+    redraw() {
+        let x, w, y;
+        if (!this.ctx) return;
+
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.stepw = this.swidth / this.xrange;
+        this.steph = this.sheight / this.yrange;
+
+        this.redrawGrid();
+
+        const l = this.sequence.length;
+        for (let s = 0; s < l; ++s) {
+            const ev = this.sequence[s];
+            const noteHeight = this.steph;
+
+            if (ev.f) {
+                this.ctx.fillStyle = this.colnotesel;
+            } else {
+                this.ctx.fillStyle = this.colnote;
+            }
+
+            w = ev.g * this.stepw;
+            x = (ev.t - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+            y = this.height - (ev.n - this.yoffset) * this.steph;
+
+            this.ctx.fillRect(x, y - noteHeight, w, noteHeight);
+
+            this.applyTexture(ev);
+        }
+
+        this.redrawYRuler();
+        this.redrawXRuler();
+        this.redrawMarker();  // Redessiner le curseur de lecture et les autres marqueurs de base
+        this.redrawMarkers(); // Redessiner les marqueurs personnalisés
+        this.redrawAreaSel();
+    }
+
+    // ready() {
+    //
+    //     this.body = this.querySelector('.wac-body');
+    //     this.canvas = this.querySelector('#wac-pianoroll');
+    //     this.ctx = this.canvas.getContext("2d");
+    //
+    //     this.enableMarkerDragging(); // Activer le déplacement des marqueurs
+    //
+    //     this.redraw(); // Lancer le premier rendu
+    // }
+
+
+///end marker
+
 
     defineprop() {
         const plist = this.module.properties;
@@ -26,6 +209,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
     }
 
     connectedCallback() {
+
         let root;
         root = this;
         this.module = {
@@ -164,6 +348,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 <div id="wac-menu">Delete</div>
 </div>`;
 
+
         this.sortSequence = function () {
             this.sequence.sort((x, y) => {
                 return x.t - y.t;
@@ -187,7 +372,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
 
         this.play = function (playcallback, tick) {
-            if (typeof(tick) != "undefined") {
+            if (typeof (tick) != "undefined") {
                 this.locate(tick);
             }
             if (this.timer != null) {
@@ -534,7 +719,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         };
 
 
-
         this.addNote = function (t, n, g, v, f, type = 'note', details = {}) {
             if (t >= 0 && n >= 0 && n < 128) {
                 const id = this.noteIdCounter++;
@@ -864,6 +1048,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             this.cursorimg = this.elem.children[4];
             this.menu = this.elem.children[5];
             this.rcMenu = {x: 0, y: 0, width: 0, height: 0};
+            this.enableMarkerDragging(); // Activer le déplacement des marqueurs
             this.lastx = 0;
             this.lasty = 0;
             this.kb.addEventListener('click', this.handleKeyboardClick.bind(this), false);
@@ -1325,6 +1510,42 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             }
         };
 
+        // this.redraw = function () {
+        //     let x, w, y;
+        //     if (!this.ctx) return;
+        //
+        //     this.ctx.clearRect(0, 0, this.width, this.height);
+        //     this.stepw = this.swidth / this.xrange;
+        //     this.steph = this.sheight / this.yrange;
+        //
+        //     this.redrawGrid();
+        //
+        //     const l = this.sequence.length;
+        //     for (let s = 0; s < l; ++s) {
+        //         const ev = this.sequence[s];
+        //         const noteHeight = this.steph;
+        //         console.log('tool active: ' + this.tool + ',  length : ' + ev.g + ' start: ' + ev.t)
+        //
+        //         if (ev.f) {
+        //             this.ctx.fillStyle = this.colnotesel;
+        //         } else {
+        //             this.ctx.fillStyle = this.colnote;
+        //         }
+        //
+        //         w = ev.g * this.stepw;
+        //         x = (ev.t - this.xoffset) * this.stepw + this.yruler + this.kbwidth;
+        //         y = this.height - (ev.n - this.yoffset) * this.steph;
+        //
+        //         this.ctx.fillRect(x, y - noteHeight, w, noteHeight);
+        //
+        //         this.applyTexture(ev);
+        //     }
+        //
+        //     this.redrawYRuler();
+        //     this.redrawXRuler();
+        //     this.redrawMarker();
+        //     this.redrawAreaSel();
+        // };
         this.redraw = function () {
             let x, w, y;
             if (!this.ctx) return;
@@ -1339,7 +1560,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
             for (let s = 0; s < l; ++s) {
                 const ev = this.sequence[s];
                 const noteHeight = this.steph;
-                console.log('tool active: ' + this.tool + ',  length : ' + ev.g + ' start: ' + ev.t)
+                console.log('tool active: ' + this.tool + ',  length : ' + ev.g + ' start: ' + ev.t);
 
                 if (ev.f) {
                     this.ctx.fillStyle = this.colnotesel;
@@ -1358,10 +1579,10 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
 
             this.redrawYRuler();
             this.redrawXRuler();
-            this.redrawMarker();
+            this.redrawMarker();  // Redessiner le curseur de lecture et les autres marqueurs de base
+            this.redrawMarkers(); // Ajoutez cet appel pour redessiner vos marqueurs personnalisés
             this.redrawAreaSel();
         };
-
         this.ready();
     }
 
@@ -1408,7 +1629,7 @@ function setTempo(id) {
     console.log('Tempo:', pianoRoll.tempo);
 }
 
-function changeEditMode(id,mode) {
+function changeEditMode(id, mode) {
     document.getElementById(id).editmode = mode;
 }
 
@@ -1433,6 +1654,7 @@ function setMarkEnd(id) {
     let sequence = document.getElementById(id);
     sequence.markend = (7)
 }
+
 
 function playHead(id) {
     let sequence = document.getElementById(id);
@@ -1530,7 +1752,6 @@ function selectAll(id) {
 }
 
 function deSelectAll(id) {
-    let pianoroll = document.getElementById(id);
     pianoroll.sequence.forEach(note => {
         note.f = 0;
     });
@@ -1539,5 +1760,17 @@ function deSelectAll(id) {
 
 function clear_now() {
     console.clear()
+}
+
+
+function newMarker(id, position) {
+    let pianoroll = document.getElementById(id);
+    pianoroll.addMarker(10, 'Start Point');
+    pianoroll.addMarker(12, 'End Point');
+}
+
+function deleteMarker(id, markerID) {
+    let pianoroll = document.getElementById(id);
+    pianoroll.removeMarker(markerID);
 }
 
