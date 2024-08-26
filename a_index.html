@@ -66,8 +66,86 @@
 <button onclick="marker('proll')">marker</button>
 <button onclick="removeMarker('proll')">remove marker</button>
 <button onclick="clear_sequence('proll')">clear sequence</button>
-<button onclick="fill_sequence('proll')">fill sequence</button>
+<script>
+    seq=[
+        {
+            "id": 0,
+            "t": 1,
+            "n": 71,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 1,
+            "t": 3,
+            "n": 70,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 4,
+            "t": 3,
+            "n": 63,
+            "g": 3,
+            "f": 1,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 2,
+            "t": 6,
+            "n": 66,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 3,
+            "t": 7,
+            "n": 62,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        }
+    ]
 
+    function test_fill(id){
+        fill_sequence(id, seq)
+    }
+
+</script>
+<button onclick="test_fill('proll','' )">fill sequence</button>
 
 <!--// TODO: add add limited / custom name on pianoroll , song structure -->
 <!--// TODO:  undo-->

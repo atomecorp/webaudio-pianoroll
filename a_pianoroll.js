@@ -1685,79 +1685,8 @@ function clear_sequence(id) {
     const pianoRoll = document.getElementById(id);
     pianoRoll.clearSequence();
 }
-function fill_sequence(id) {
-    seq=[
-        {
-            "id": 0,
-            "t": 1,
-            "n": 71,
-            "g": 1,
-            "f": 0,
-            "type": "note",
-            "details": {
-                "in": 0,
-                "out": 0,
-                "group": {}
-            },
-            "textureApplied": true
-        },
-        {
-            "id": 1,
-            "t": 3,
-            "n": 70,
-            "g": 1,
-            "f": 0,
-            "type": "note",
-            "details": {
-                "in": 0,
-                "out": 0,
-                "group": {}
-            },
-            "textureApplied": true
-        },
-        {
-            "id": 4,
-            "t": 3,
-            "n": 63,
-            "g": 3,
-            "f": 1,
-            "type": "note",
-            "details": {
-                "in": 0,
-                "out": 0,
-                "group": {}
-            },
-            "textureApplied": true
-        },
-        {
-            "id": 2,
-            "t": 6,
-            "n": 66,
-            "g": 1,
-            "f": 0,
-            "type": "note",
-            "details": {
-                "in": 0,
-                "out": 0,
-                "group": {}
-            },
-            "textureApplied": true
-        },
-        {
-            "id": 3,
-            "t": 7,
-            "n": 62,
-            "g": 1,
-            "f": 0,
-            "type": "note",
-            "details": {
-                "in": 0,
-                "out": 0,
-                "group": {}
-            },
-            "textureApplied": true
-        }
-    ]
+function fill_sequence(id, seq) {
+
     const pianoRoll = document.getElementById(id);
     pianoRoll.setSequence(seq);
 }
