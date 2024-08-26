@@ -3,8 +3,25 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
         super();
         this.noteIdCounter = 0;
         this.editing = true
-        this.refuse = false
         this.tool = 'create'
+    }
+
+    clearSequence() {
+        this.sequence = [];
+        this.redraw();
+        console.log("Sequence cleared and view refreshed.");
+    }
+
+    setSequence(newSequence) {
+        if (Array.isArray(newSequence)) {
+            this.sequence = newSequence;
+            this.noteIdCounter = newSequence.length > 0 ? Math.max(...newSequence.map(note => note.id)) + 1 : 0;
+            this.sortSequence();
+            this.redraw();
+            console.log("Sequence replaced and view refreshed.");
+        } else {
+            console.error("Invalid sequence format. Please provide an array.");
+        }
     }
 
     defineprop() {
@@ -728,7 +745,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 if (ev.f)
                     this.sequence.splice(i, 1);
             }
-            this.refuse = true // to prevent any new note creation when clicking to delete
         };
         this.moveSelectedNote = function (dt, dn) {
             console.log('moving note')
@@ -792,8 +808,7 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                 this.dragging = {o: "D", m: "B", i: ht.i, t: ev.t, g: ev.g, ev: this.selectedNotes()};
             } else if (ht.m == "s" && ht.t >= 0) {
                 this.clearSel();
-
-                if (this.editing === true && !this.refuse) {
+                if (this.editing === true || this.tool===!'select') {
                     var t = ((ht.t / this.snap) | 0) * this.snap;
                     const id = this.noteIdCounter++;
                     console.log('visual note creation  : ' + id);
@@ -831,7 +846,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                         g: 1,
                         ev: [{t: t, g: 1, ev: this.sequence[this.sequence.length - 1]}]
                     };
-                    this.refuse = false;
                 } else {
                     switch (this.downht.m) {
                         case "N":
@@ -850,8 +864,6 @@ customElements.define("webaudio-pianoroll", class Pianoroll extends HTMLElement 
                                     t1: this.downht.t,
                                     n1: this.downht.n
                                 };
-                            this.refuse = false
-                            console.log('===> accept/refuse' + this.refuse)
                             break;
                     }
                     this.canvas.focus();
@@ -1668,9 +1680,88 @@ function removeMarker(id) {
     pianoRoll.removeMarker('playheadID1');
 }
 
-///
 
-function clear_now() {
-    console.clear()
+function clear_sequence(id) {
+    const pianoRoll = document.getElementById(id);
+    pianoRoll.clearSequence();
 }
+function fill_sequence(id) {
+    seq=[
+        {
+            "id": 0,
+            "t": 1,
+            "n": 71,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 1,
+            "t": 3,
+            "n": 70,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 4,
+            "t": 3,
+            "n": 63,
+            "g": 3,
+            "f": 1,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 2,
+            "t": 6,
+            "n": 66,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        },
+        {
+            "id": 3,
+            "t": 7,
+            "n": 62,
+            "g": 1,
+            "f": 0,
+            "type": "note",
+            "details": {
+                "in": 0,
+                "out": 0,
+                "group": {}
+            },
+            "textureApplied": true
+        }
+    ]
+    const pianoRoll = document.getElementById(id);
+    pianoRoll.setSequence(seq);
+}
+
+
+
 
