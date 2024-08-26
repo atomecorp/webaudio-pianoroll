@@ -1534,9 +1534,9 @@ function aRoll(id, target, width, height) {
 
 /// pianoroll builder below
 
-function setTempo(id) {
+function setTempo(id, tempo) {
     let pianoRoll = document.getElementById(id);
-    pianoRoll.tempo = 33;
+    pianoRoll.tempo = tempo;
     pianoRoll.updateTimer();
     console.log('Tempo:', pianoRoll.tempo);
 }
@@ -1690,7 +1690,3 @@ function fill_sequence(id, seq) {
     const pianoRoll = document.getElementById(id);
     pianoRoll.setSequence(seq);
 }
-
-
-
-
